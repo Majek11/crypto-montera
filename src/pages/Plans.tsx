@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import AppLayout from "@/components/layout/AppLayout";
 import type { InvestmentPlan } from "@/types";
+import SEO from "@/components/SEO";
 
 const riskIcons: Record<string, typeof Shield> = {
   conservative: Shield,
@@ -63,6 +64,7 @@ const Plans = () => {
 
   return (
     <AppLayout>
+      <SEO title="Investment Plans" description="Browse and invest in Monetra's crypto investment plans. Flexible terms, zero fees, and real-time portfolio tracking." noIndex />
       <div className="p-6 lg:p-8 max-w-7xl mx-auto">
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
           <h1 className="font-heading font-bold text-3xl text-foreground mb-2">Investment Plans</h1>

@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Eye, EyeOff, ArrowUpRight } from "lucide-react";
 import { z } from "zod";
+import SEO from "@/components/SEO";
 
 const signupSchema = z.object({
   displayName: z.string().trim().min(2, "Name must be at least 2 characters").max(50),
@@ -43,6 +44,7 @@ const Signup = () => {
 
   return (
     <div className="min-h-screen bg-background flex">
+      <SEO title="Create Account" description="Join Monetra and start building your crypto investment portfolio today. Zero fees, instant setup." noIndex />
       {/* Left - Branding */}
       <div className="hidden lg:flex flex-col justify-between w-1/2 p-12 relative overflow-hidden">
         <div

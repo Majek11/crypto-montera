@@ -12,3 +12,20 @@ Allow: /
 
 User-agent: *
 Allow: /
+Allow: /login
+Allow: /signup
+Allow: /forgot-password
+
+# Block authenticated-only pages — no SEO value behind login wall
+Disallow: /dashboard
+Disallow: /plans
+Disallow: /transactions
+Disallow: /wallets
+Disallow: /deposit
+Disallow: /withdraw
+Disallow: /settings
+Disallow: /kyc
+Disallow: /activity
+Disallow: /admin
+
+Sitemap: https://crypto-montera.vercel.app/sitemap.xml

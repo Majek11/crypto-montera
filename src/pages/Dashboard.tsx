@@ -9,6 +9,7 @@ import { useInvestments } from "@/hooks/useInvestments";
 import { useTransactions } from "@/hooks/useTransactions";
 import { useWallets } from "@/hooks/useWallets";
 import { Skeleton } from "@/components/ui/skeleton";
+import SEO from "@/components/SEO";
 
 const StatCardSkeleton = () => (
   <div className="bg-card border border-border rounded-lg p-5 space-y-3">
@@ -80,6 +81,7 @@ const Dashboard = () => {
 
   return (
     <AppLayout>
+      <SEO title="Dashboard" description="Your live crypto portfolio — balance, investments, recent transactions, and performance chart." noIndex />
       <div className="p-6 lg:p-8 max-w-7xl mx-auto">
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
           <h1 className="font-heading font-bold text-3xl text-foreground mb-1">Dashboard</h1>

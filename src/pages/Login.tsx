@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Eye, EyeOff, ArrowUpRight } from "lucide-react";
 import { z } from "zod";
+import SEO from "@/components/SEO";
 
 const loginSchema = z.object({
   email: z.string().trim().email("Invalid email address"),
@@ -62,6 +63,7 @@ const Login = () => {
 
   return (
     <div className="min-h-screen bg-background flex">
+      <SEO title="Sign In" description="Sign in to your Monetra account to access your crypto portfolio, investments, and wallet." noIndex />
       {/* Left - Branding */}
       <div className="hidden lg:flex flex-col justify-between w-1/2 p-12 relative overflow-hidden">
         <div

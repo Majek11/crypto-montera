@@ -10,10 +10,16 @@ import TestimonialsSection from "@/components/features/TestimonialsSection";
 import FAQSection from "@/components/features/FAQSection";
 import NewsletterSection from "@/components/features/NewsletterSection";
 import Footer from "@/components/layout/Footer";
+import SEO from "@/components/SEO";
 
 const Index = () => {
   return (
     <div className="min-h-screen bg-background">
+      <SEO
+        canonical="/"
+        title="Crypto Investment Platform"
+        description="Monetra — Zero fees. Instant settlement. Bank-grade security. Invest in Bitcoin, Ethereum, Solana, and 500+ crypto assets with professional-grade analytics."
+      />
       <Navbar />
       <div className="pt-16">
         <TickerBar />

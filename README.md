@@ -1,74 +1,95 @@
-# Welcome to your Lovable project
+# Monetra — Crypto Investment Platform
 
-## Project info
+A professional crypto investment platform built with React, Vite, TypeScript, Supabase, and Tailwind CSS.
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+## Tech Stack
 
-## How can I edit this code?
+- **Frontend:** React 18 + TypeScript + Vite
+- **Styling:** Tailwind CSS + shadcn/ui
+- **Backend:** Supabase (Auth, Database, Storage, Realtime)
+- **State:** TanStack React Query
+- **Animations:** Framer Motion
+- **Routing:** React Router DOM v6
 
-There are several ways of editing your application.
+## Features
 
-**Use Lovable**
+- 📊 Real-time portfolio dashboard with live chart
+- 💰 Investment plans with auto-compounding returns
+- 🔐 Bank-grade security with KYC verification
+- 🔔 Real-time notifications
+- 💳 Deposit & withdrawal flows
+- 👛 Wallet connect (MetaMask, Phantom, Coinbase, Trust Wallet)
+- 🎁 Bonus & referral system
+- 🛡️ Admin panel (users, KYC review, bonus management, analytics)
+- 📱 Fully responsive (mobile + desktop)
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
+## Getting Started
 
-Changes made via Lovable will be committed automatically to this repo.
+### 1. Clone the repo
 
-**Use your preferred IDE**
+```bash
+git clone https://github.com/Majek11/crypto-montera.git
+cd crypto-montera
+```
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+### 2. Install dependencies
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+```bash
+npm install
+```
 
-Follow these steps:
+### 3. Configure environment variables
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+```bash
+cp .env.example .env
+```
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+Fill in your Supabase credentials in `.env`:
 
-# Step 3: Install the necessary dependencies.
-npm i
+```
+VITE_SUPABASE_URL=https://your-project.supabase.co
+VITE_SUPABASE_PUBLISHABLE_KEY=your-anon-key
+```
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
+### 4. Run locally
+
+```bash
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+### 5. Build for production
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+```bash
+npm run build
+```
 
-**Use GitHub Codespaces**
+## Deployment
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+Deployed on **Vercel**. Every push to `main` triggers a new deployment automatically.
 
-## What technologies are used for this project?
+Make sure the following environment variables are set in your Vercel project settings:
+- `VITE_SUPABASE_URL`
+- `VITE_SUPABASE_PUBLISHABLE_KEY`
 
-This project is built with:
+## Folder Structure
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+```
+src/
+├── components/       # Reusable UI components
+│   ├── dashboard/    # Dashboard widgets
+│   ├── features/     # Landing page sections
+│   ├── layout/       # App & Admin layouts
+│   ├── security/     # 2FA, email verification
+│   └── wallet/       # Wallet connect
+├── contexts/         # React context (Auth)
+├── hooks/            # Custom React Query hooks
+├── integrations/     # Supabase client & generated types
+├── lib/              # Utilities, constants, audit logger
+├── pages/            # Page components
+│   └── admin/        # Admin-only pages
+└── types/            # Shared TypeScript interfaces
+```
 
-## How can I deploy this project?
+## License
 
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
-# crypto-montera
+MIT

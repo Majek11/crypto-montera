@@ -9,6 +9,7 @@ import { useNavigate } from "react-router-dom";
 import AppLayout from "@/components/layout/AppLayout";
 import { toast } from "sonner";
 import type { Transaction } from "@/types";
+import SEO from "@/components/SEO";
 
 const typeFilters = ["All", "Deposit", "Withdrawal", "Investment", "Return", "Fee"];
 
@@ -43,6 +44,7 @@ const Transactions = () => {
 
   return (
     <AppLayout>
+      <SEO title="Transactions" description="View all your crypto deposit, withdrawal, and investment transactions with full history and status tracking." noIndex />
       <div className="p-6 lg:p-8 max-w-7xl mx-auto">
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
           <div>
@@ -138,9 +140,9 @@ const Transactions = () => {
                       </td>
                       <td className="p-4 text-right">
                         <span className={`font-mono text-xs px-2 py-0.5 rounded-pill capitalize ${tx.status === "completed" ? "bg-accent-dim text-primary"
-                            : tx.status === "pending" ? "bg-amber-400/10 text-amber-400"
-                              : tx.status === "processing" ? "bg-blue-400/10 text-blue-400"
-                                : "bg-destructive/10 text-destructive"
+                          : tx.status === "pending" ? "bg-amber-400/10 text-amber-400"
+                            : tx.status === "processing" ? "bg-blue-400/10 text-blue-400"
+                              : "bg-destructive/10 text-destructive"
                           }`}>
                           {tx.status}
                         </span>
