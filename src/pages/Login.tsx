@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -18,6 +18,8 @@ const loginSchema = z.object({
 const Login = () => {
   const { signIn } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  const isConfirmed = new URLSearchParams(location.search).get("confirmed") === "true";
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -101,6 +103,17 @@ const Login = () => {
           <p className="font-body text-sm text-muted-foreground mb-8">
             Sign in to your account to continue
           </p>
+
+          {/* ── Email confirmed banner ── */}
+          {isConfirmed && (
+            <div className="mb-6 flex items-start gap-3 bg-primary/10 border border-primary/30 rounded-lg px-4 py-3">
+              <span className="text-primary text-lg mt-0.5">✓</span>
+              <div>
+                <p className="font-body text-sm font-semibold text-primary">Email confirmed!</p>
+                <p className="font-body text-xs text-muted-foreground mt-0.5">Your account is verified. Sign in below to access your dashboard.</p>
+              </div>
+            </div>
+          )}
 
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>

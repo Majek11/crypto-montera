@@ -11,7 +11,6 @@ import FAQSection from "@/components/features/FAQSection";
 import NewsletterSection from "@/components/features/NewsletterSection";
 import Footer from "@/components/layout/Footer";
 import SEO from "@/components/SEO";
-import TawkToChat from "@/components/TawkToChat";
 
 const Index = () => {
   return (
@@ -21,7 +20,6 @@ const Index = () => {
         title="Crypto Investment Platform"
         description="Monetra — Zero fees. Instant settlement. Bank-grade security. Invest in Bitcoin, Ethereum, Solana, and 500+ crypto assets with professional-grade analytics."
       />
-      <TawkToChat />
       <Navbar />
       <div className="pt-16">
         <TickerBar />

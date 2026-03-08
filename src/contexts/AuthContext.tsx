@@ -40,7 +40,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       email,
       password,
       options: {
-        emailRedirectTo: window.location.origin,
+        // After confirming their email, users land on the login page
+        // with a success prompt — they must explicitly log in.
+        // Auto-dropping a session from an email link click is not
+        // appropriate for a financial platform.
+        emailRedirectTo: `${window.location.origin}/login?confirmed=true`,
         data: { display_name: displayName },
       },
     });
