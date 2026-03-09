@@ -4,12 +4,14 @@ import { Menu, X, ArrowUpRight, Sun, Moon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTheme } from "next-themes";
+import LanguageSwitcher from "@/components/LanguageSwitcher";
+import { useTranslation } from "react-i18next";
 
-const navLinks = [
-  { label: "Home", href: "/" },
-  { label: "About", href: "/#about" },
-  { label: "Plans", href: "/#plans" },
-  { label: "FAQ", href: "/#faq" },
+const navKeys = [
+  { labelKey: "common.home", href: "/" },
+  { labelKey: "common.about", href: "/#about" },
+  { labelKey: "common.plans", href: "/#plans" },
+  { labelKey: "common.faq", href: "/#faq" },
 ];
 
 const Navbar = () => {
@@ -17,6 +19,7 @@ const Navbar = () => {
   const { user } = useAuth();
   const location = useLocation();
   const { theme, setTheme } = useTheme();
+  const { t } = useTranslation();
 
   const handleNavClick = (href: string) => {
     setMobileOpen(false);
@@ -42,9 +45,9 @@ const Navbar = () => {
 
       {/* Desktop Nav Links */}
       <div className="hidden md:flex items-center bg-secondary/60 rounded-pill px-1 py-1 border border-border">
-        {navLinks.map((link) => (
+        {navKeys.map((link) => (
           <Link
-            key={link.label}
+            key={link.labelKey}
             to={link.href}
             onClick={() => handleNavClick(link.href)}
             className={`px-4 py-1.5 rounded-pill text-sm font-body font-medium transition-all ${
@@ -53,13 +56,16 @@ const Navbar = () => {
                 : "text-muted-foreground hover:text-foreground"
             }`}
           >
-            {link.label}
+            {t(link.labelKey)}
           </Link>
         ))}
       </div>
 
       {/* Right side */}
       <div className="flex items-center gap-3">
+        <div className="hidden sm:block">
+          <LanguageSwitcher direction="down" />
+        </div>
         <button
           onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
           className="w-10 h-10 rounded-lg border border-border flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
@@ -70,19 +76,19 @@ const Navbar = () => {
         {user ? (
           <Link to="/dashboard">
             <Button variant="wallet" size="default" className="hidden sm:flex items-center gap-2">
-              Dashboard <ArrowUpRight size={14} />
+              {t("common.dashboard")} <ArrowUpRight size={14} />
             </Button>
           </Link>
         ) : (
           <>
             <Link to="/login">
               <Button variant="ghost" size="default" className="hidden sm:flex text-muted-foreground hover:text-foreground">
-                Sign In
+                {t("common.signIn")}
               </Button>
             </Link>
             <Link to="/signup">
               <Button variant="wallet" size="default" className="hidden sm:flex items-center gap-2">
-                Get Started <ArrowUpRight size={14} />
+                {t("common.getStarted")} <ArrowUpRight size={14} />
               </Button>
             </Link>
           </>
@@ -99,28 +105,31 @@ const Navbar = () => {
       {mobileOpen && (
         <div className="absolute top-full left-0 right-0 bg-background border-b border-border p-6 md:hidden">
           <div className="flex flex-col gap-4">
-            {navLinks.map((link) => (
+            {navKeys.map((link) => (
               <Link
-                key={link.label}
+                key={link.labelKey}
                 to={link.href}
                 onClick={() => handleNavClick(link.href)}
                 className="font-body text-sm text-muted-foreground hover:text-foreground transition-colors"
               >
-                {link.label}
+                {t(link.labelKey)}
               </Link>
             ))}
+            <div className="pt-2">
+              <LanguageSwitcher direction="down" />
+            </div>
             <div className="flex flex-col gap-2 pt-4 border-t border-border">
               {user ? (
                 <Link to="/dashboard" onClick={() => setMobileOpen(false)}>
-                  <Button variant="wallet" className="w-full">Dashboard</Button>
+                  <Button variant="wallet" className="w-full">{t("common.dashboard")}</Button>
                 </Link>
               ) : (
                 <>
                   <Link to="/login" onClick={() => setMobileOpen(false)}>
-                    <Button variant="hero-ghost" className="w-full">Sign In</Button>
+                    <Button variant="hero-ghost" className="w-full">{t("common.signIn")}</Button>
                   </Link>
                   <Link to="/signup" onClick={() => setMobileOpen(false)}>
-                    <Button variant="wallet" className="w-full">Get Started</Button>
+                    <Button variant="wallet" className="w-full">{t("common.getStarted")}</Button>
                   </Link>
                 </>
               )}

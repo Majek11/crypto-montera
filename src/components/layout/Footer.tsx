@@ -1,31 +1,5 @@
 import { Link } from "react-router-dom";
-
-const footerLinks = {
-  Product: [
-    { label: "Investment Plans", href: "/#plans" },
-    { label: "Features", href: "/" },
-    { label: "Security", href: "/" },
-    { label: "Pricing", href: "/#plans" },
-  ],
-  Company: [
-    { label: "About Us", href: "/#about" },
-    { label: "Careers", href: "/" },
-    { label: "Press", href: "/" },
-    { label: "Contact", href: "/" },
-  ],
-  Resources: [
-    { label: "Documentation", href: "/" },
-    { label: "FAQ", href: "/#faq" },
-    { label: "Blog", href: "/" },
-    { label: "Community", href: "/" },
-  ],
-  Legal: [
-    { label: "Terms of Service", href: "/" },
-    { label: "Privacy Policy", href: "/" },
-    { label: "Cookie Policy", href: "/" },
-    { label: "Compliance", href: "/" },
-  ],
-};
+import { useTranslation } from "react-i18next";
 
 const socialLinks = [
   { label: "Twitter", icon: "𝕏" },
@@ -35,6 +9,35 @@ const socialLinks = [
 ];
 
 const Footer = () => {
+  const { t } = useTranslation();
+
+  const footerLinks = {
+    [t("footer.product")]: [
+      { label: t("footer.investmentPlans"), href: "/#plans" },
+      { label: t("footer.featuresLink"), href: "/" },
+      { label: t("footer.security"), href: "/" },
+      { label: t("footer.pricing"), href: "/#plans" },
+    ],
+    [t("footer.company")]: [
+      { label: t("footer.aboutUs"), href: "/#about" },
+      { label: t("footer.careers"), href: "/" },
+      { label: t("footer.press"), href: "/" },
+      { label: t("footer.contact"), href: "/" },
+    ],
+    [t("footer.resources")]: [
+      { label: t("footer.documentation"), href: "/" },
+      { label: t("footer.faqLink"), href: "/#faq" },
+      { label: t("footer.blog"), href: "/" },
+      { label: t("footer.community"), href: "/" },
+    ],
+    [t("footer.legal")]: [
+      { label: t("footer.terms"), href: "/" },
+      { label: t("footer.privacy"), href: "/" },
+      { label: t("footer.cookies"), href: "/" },
+      { label: t("footer.compliance"), href: "/" },
+    ],
+  };
+
   return (
     <footer className="bg-surface border-t border-border">
       <div className="max-w-7xl mx-auto px-6 lg:px-12 py-16">
@@ -49,7 +52,7 @@ const Footer = () => {
               <span className="font-heading font-bold text-lg text-foreground">Monetra</span>
             </Link>
             <p className="font-body text-xs text-muted-foreground leading-relaxed mb-6">
-              The next generation of crypto investment. Zero fees, instant settlement, bank-grade security.
+              {t("footer.tagline")}
             </p>
             <div className="flex gap-3">
               {socialLinks.map((s) => (
@@ -87,15 +90,15 @@ const Footer = () => {
         {/* Bottom bar */}
         <div className="border-t border-border pt-6 flex flex-col md:flex-row items-center justify-between gap-4">
           <p className="font-mono text-[11px] text-muted-foreground">
-            © 2026 Monetra. All rights reserved.
+            {t("footer.copyright")}
           </p>
           <div className="flex items-center gap-4">
             <span className="font-mono text-[11px] text-muted-foreground">
-              Built with trust & transparency
+              {t("footer.builtWith")}
             </span>
             <div className="flex items-center gap-1.5">
               <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse-glow" />
-              <span className="font-mono text-[11px] text-primary">All systems operational</span>
+              <span className="font-mono text-[11px] text-primary">{t("footer.operational")}</span>
             </div>
           </div>
         </div>

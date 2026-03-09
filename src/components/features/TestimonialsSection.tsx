@@ -1,14 +1,6 @@
 import { motion } from "framer-motion";
 import { Star } from "lucide-react";
-
-const testimonials = [
-  { name: "Sarah Chen", role: "Portfolio Manager", text: "Monetra transformed how I manage crypto investments. The zero-fee model alone saved us over $50K in the first quarter.", avatar: "SC" },
-  { name: "James Rodriguez", role: "Day Trader", text: "The instant settlement is a game-changer. No more waiting for transactions to clear — everything happens in real-time.", avatar: "JR" },
-  { name: "Emily Watson", role: "Hedge Fund Director", text: "Bank-grade security with the flexibility of DeFi. Monetra is the only platform I trust with institutional-level investments.", avatar: "EW" },
-  { name: "Michael Okafor", role: "Retail Investor", text: "I started with just $500 and the managed plans made it incredibly easy. My portfolio has grown 340% in 8 months.", avatar: "MO" },
-  { name: "Lisa Park", role: "Blockchain Developer", text: "The analytics tools are phenomenal. Professional-grade charts and insights that rival platforms costing 10x more.", avatar: "LP" },
-  { name: "David Müller", role: "Family Office Manager", text: "Our family office moved $12M to Monetra. The compliance tools and audit trails give us complete peace of mind.", avatar: "DM" },
-];
+import { useTranslation } from "react-i18next";
 
 const container = {
   hidden: {},
@@ -21,6 +13,15 @@ const item = {
 };
 
 const TestimonialsSection = () => {
+  const { t } = useTranslation();
+  const testimonials = [
+    { name: t("testimonials.t1Name"), role: t("testimonials.t1Role"), text: t("testimonials.t1Text"), avatar: "SC" },
+    { name: t("testimonials.t2Name"), role: t("testimonials.t2Role"), text: t("testimonials.t2Text"), avatar: "JR" },
+    { name: t("testimonials.t3Name"), role: t("testimonials.t3Role"), text: t("testimonials.t3Text"), avatar: "EW" },
+    { name: t("testimonials.t4Name"), role: t("testimonials.t4Role"), text: t("testimonials.t4Text"), avatar: "MO" },
+    { name: t("testimonials.t5Name"), role: t("testimonials.t5Role"), text: t("testimonials.t5Text"), avatar: "LP" },
+    { name: t("testimonials.t6Name"), role: t("testimonials.t6Role"), text: t("testimonials.t6Text"), avatar: "DM" },
+  ];
   return (
     <section className="px-6 lg:px-12 py-24 bg-background">
       <div className="max-w-7xl mx-auto">
@@ -31,10 +32,10 @@ const TestimonialsSection = () => {
           transition={{ duration: 0.6 }}
           className="text-center mb-14"
         >
-          <span className="font-mono text-xs text-primary tracking-wider uppercase mb-4 block">Testimonials</span>
-          <h2 className="font-display text-5xl sm:text-6xl text-foreground mb-4">WHAT OUR INVESTORS SAY</h2>
+          <span className="font-mono text-xs text-primary tracking-wider uppercase mb-4 block">{t("testimonials.label")}</span>
+          <h2 className="font-display text-5xl sm:text-6xl text-foreground mb-4">{t("testimonials.title")}</h2>
           <p className="font-body text-muted-foreground max-w-md mx-auto">
-            Join thousands of satisfied investors who chose Monetra.
+            {t("testimonials.subtitle")}
           </p>
         </motion.div>
 
@@ -50,7 +51,7 @@ const TestimonialsSection = () => {
               key={t.name}
               variants={item}
               whileHover={{ y: -6, transition: { duration: 0.2 } }}
-              className="bg-card border border-border rounded-lg p-6 hover:border-border-light transition-all cursor-pointer"
+              className="bg-card border border-border rounded-lg p-6 hover:border-border-light transition-all"
             >
               <div className="flex gap-1 mb-4">
                 {[...Array(5)].map((_, j) => (

@@ -1,12 +1,13 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { User, Shield, Activity } from "lucide-react";
+import { User, Shield, Activity, Camera, Trash2 } from "lucide-react";
 import { Link } from "react-router-dom";
 import AppLayout from "@/components/layout/AppLayout";
 import TwoFactorSetup from "@/components/security/TwoFactorSetup";
@@ -24,11 +25,15 @@ const profileSchema = z.object({
 
 const Settings = () => {
   const { user, signOut } = useAuth();
+  const { t } = useTranslation();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({ display_name: "", phone: "", country: "", bio: "" });
   const [kycStatus, setKycStatus] = useState("pending");
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!user) return;
@@ -37,9 +42,10 @@ const Settings = () => {
         supabase.from("profiles").select("*").eq("user_id", user.id).single(),
         supabase.from("kyc_verifications").select("status").eq("user_id", user.id).order("created_at", { ascending: false }).limit(1).maybeSingle(),
       ]);
-      if (profileError) toast.error("Failed to load profile");
+      if (profileError) toast.error(t("settings.profileLoadFailed"));
       else if (profileData) {
         setProfile(profileData);
+        setAvatarUrl(profileData.avatar_url || null);
         setForm({
           display_name: profileData.display_name || "",
           phone: profileData.phone || "",
@@ -68,16 +74,82 @@ const Settings = () => {
     if (error) toast.error(error.message);
     else {
       await logAudit({ action: "profile_updated", entity_type: "profile" });
-      toast.success("Profile updated!");
+      toast.success(t("settings.profileUpdated"));
     }
   };
 
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+
+    // Validate file
+    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+      toast.error(t("settings.photoHint"));
+      return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error(t("settings.photoHint"));
+      return;
+    }
+
+    setUploadingAvatar(true);
+    const fileExt = file.name.split(".").pop();
+    const filePath = `${user.id}/avatar.${fileExt}`;
+
+    // Upload to Supabase Storage
+    const { error: uploadError } = await supabase.storage
+      .from("avatars")
+      .upload(filePath, file, { upsert: true });
+
+    if (uploadError) {
+      toast.error(t("settings.photoUploadFailed") + ": " + uploadError.message);
+      setUploadingAvatar(false);
+      return;
+    }
+
+    // Get public URL
+    const { data: urlData } = supabase.storage.from("avatars").getPublicUrl(filePath);
+    const publicUrl = urlData.publicUrl;
+
+    // Update profile
+    const { error: updateError } = await supabase
+      .from("profiles")
+      .update({ avatar_url: publicUrl })
+      .eq("user_id", user.id);
+
+    if (updateError) {
+      toast.error(t("settings.photoUploadFailed"));
+    } else {
+      setAvatarUrl(publicUrl);
+      toast.success(t("settings.photoUpdated"));
+    }
+    setUploadingAvatar(false);
+  };
+
+  const handleAvatarRemove = async () => {
+    if (!user) return;
+    setUploadingAvatar(true);
+
+    const { error } = await supabase
+      .from("profiles")
+      .update({ avatar_url: null })
+      .eq("user_id", user.id);
+
+    if (error) {
+      toast.error(error.message);
+    } else {
+      setAvatarUrl(null);
+      toast.success(t("settings.photoRemoved"));
+    }
+    setUploadingAvatar(false);
+  };
+
   const kycStatusConfig: Record<string, { color: string; label: string }> = {
-    pending: { color: "bg-muted text-muted-foreground", label: "Not Started" },
-    submitted: { color: "bg-amber-400/10 text-amber-400", label: "Submitted" },
-    under_review: { color: "bg-blue-400/10 text-blue-400", label: "Under Review" },
-    approved: { color: "bg-accent-dim text-primary", label: "Verified" },
-    rejected: { color: "bg-destructive/10 text-destructive", label: "Rejected" },
+    pending: { color: "bg-muted text-muted-foreground", label: t("kyc.notStarted") },
+    submitted: { color: "bg-amber-400/10 text-amber-400", label: t("kyc.submitted") },
+    under_review: { color: "bg-blue-400/10 text-blue-400", label: t("kyc.underReview") },
+    approved: { color: "bg-accent-dim text-primary", label: t("kyc.verified") },
+    rejected: { color: "bg-destructive/10 text-destructive", label: t("kyc.rejected") },
   };
 
   const kycConfig = kycStatusConfig[kycStatus] || kycStatusConfig.pending;
@@ -86,8 +158,8 @@ const Settings = () => {
     <AppLayout>
       <div className="p-6 lg:p-8 max-w-3xl mx-auto">
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
-          <h1 className="font-heading font-bold text-3xl text-foreground mb-1">Settings</h1>
-          <p className="font-body text-sm text-muted-foreground">Manage your profile and security</p>
+          <h1 className="font-heading font-bold text-3xl text-foreground mb-1">{t("settings.title")}</h1>
+          <p className="font-body text-sm text-muted-foreground">{t("settings.subtitle")}</p>
         </motion.div>
 
         {/* Email Verification Banner */}
@@ -103,8 +175,63 @@ const Settings = () => {
                 <User size={18} className="text-primary" />
               </div>
               <div>
-                <h3 className="font-heading font-bold text-base text-foreground">Profile</h3>
-                <p className="font-body text-xs text-muted-foreground">Your personal information</p>
+                <h3 className="font-heading font-bold text-base text-foreground">{t("settings.profile")}</h3>
+                <p className="font-body text-xs text-muted-foreground">{t("settings.personalInfo")}</p>
+              </div>
+            </div>
+
+            {/* Avatar Upload Section */}
+            <div className="flex items-center gap-4 mb-6 pb-6 border-b border-border/30">
+              <div className="relative group">
+                {avatarUrl ? (
+                  <img src={avatarUrl} alt="Avatar" className="w-16 h-16 rounded-full object-cover" />
+                ) : (
+                  <div className="w-16 h-16 rounded-full bg-primary/20 flex items-center justify-center">
+                    <span className="text-primary font-heading font-bold text-xl">
+                      {(form.display_name || user?.email || "U")[0]?.toUpperCase()}
+                    </span>
+                  </div>
+                )}
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploadingAvatar}
+                  className="absolute inset-0 rounded-full bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                >
+                  <Camera size={18} className="text-white" />
+                </button>
+              </div>
+              <div>
+                <p className="font-body text-sm font-medium text-foreground mb-1">{t("settings.profilePhoto")}</p>
+                <p className="font-body text-xs text-muted-foreground mb-2">{t("settings.photoHint")}</p>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={uploadingAvatar}
+                  >
+                    {uploadingAvatar ? t("common.loading") : t("settings.uploadPhoto")}
+                  </Button>
+                  {avatarUrl && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleAvatarRemove}
+                      disabled={uploadingAvatar}
+                      className="text-destructive hover:text-destructive"
+                    >
+                      <Trash2 size={14} className="mr-1" />
+                      {t("settings.removePhoto")}
+                    </Button>
+                  )}
+                </div>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  className="hidden"
+                  onChange={handleAvatarUpload}
+                />
               </div>
             </div>
 
@@ -116,33 +243,33 @@ const Settings = () => {
               <form onSubmit={handleSave} className="space-y-4">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <Label className="font-body text-sm text-muted-foreground">Display Name</Label>
+                    <Label className="font-body text-sm text-muted-foreground">{t("settings.displayName")}</Label>
                     <Input value={form.display_name} onChange={(e) => setForm({ ...form, display_name: e.target.value })} className="mt-1.5 bg-input border-border text-foreground" />
                   </div>
                   <div>
-                    <Label className="font-body text-sm text-muted-foreground">Email</Label>
+                    <Label className="font-body text-sm text-muted-foreground">{t("settings.email")}</Label>
                     <Input value={user?.email || ""} disabled className="mt-1.5 bg-input border-border text-muted-foreground" />
                   </div>
                   <div>
-                    <Label className="font-body text-sm text-muted-foreground">Phone</Label>
+                    <Label className="font-body text-sm text-muted-foreground">{t("settings.phone")}</Label>
                     <Input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} placeholder="+1 234 567 890" className="mt-1.5 bg-input border-border text-foreground" />
                   </div>
                   <div>
-                    <Label className="font-body text-sm text-muted-foreground">Country</Label>
+                    <Label className="font-body text-sm text-muted-foreground">{t("settings.country")}</Label>
                     <Input value={form.country} onChange={(e) => setForm({ ...form, country: e.target.value })} placeholder="United States" className="mt-1.5 bg-input border-border text-foreground" />
                   </div>
                 </div>
                 <div>
-                  <Label className="font-body text-sm text-muted-foreground">Bio</Label>
+                  <Label className="font-body text-sm text-muted-foreground">{t("settings.bio")}</Label>
                   <textarea
                     value={form.bio}
                     onChange={(e) => setForm({ ...form, bio: e.target.value })}
-                    placeholder="Tell us about yourself..."
+                    placeholder={t("settings.bioPlaceholder")}
                     rows={3}
                     className="mt-1.5 w-full rounded-md bg-input border border-border text-foreground text-sm font-body p-3 resize-none focus:outline-none focus:ring-2 focus:ring-ring"
                   />
                 </div>
-                <Button type="submit" variant="hero" disabled={saving}>{saving ? "Saving..." : "Save Changes"}</Button>
+                <Button type="submit" variant="hero" disabled={saving}>{saving ? t("common.saving") : t("common.save")}</Button>
               </form>
             )}
           </div>
@@ -156,21 +283,21 @@ const Settings = () => {
                 <Shield size={18} className="text-primary" />
               </div>
               <div>
-                <h3 className="font-heading font-bold text-base text-foreground">Security Status</h3>
-                <p className="font-body text-xs text-muted-foreground">Account verification overview</p>
+                <h3 className="font-heading font-bold text-base text-foreground">{t("settings.security")}</h3>
+                <p className="font-body text-xs text-muted-foreground">{t("settings.securitySub")}</p>
               </div>
             </div>
             <div className="space-y-0">
               <EmailVerificationStatus />
               <div className="flex items-center justify-between py-3 border-b border-border/30">
                 <div>
-                  <p className="font-body text-sm text-foreground">KYC Verification</p>
-                  <p className="font-body text-xs text-muted-foreground">Identity verification for higher limits</p>
+                  <p className="font-body text-sm text-foreground">{t("settings.kycVerification")}</p>
+                  <p className="font-body text-xs text-muted-foreground">{t("settings.kycSub")}</p>
                 </div>
                 <div className="flex items-center gap-2">
                   <span className={`font-mono text-xs px-2 py-0.5 rounded-pill ${kycConfig.color}`}>{kycConfig.label}</span>
                   {(kycStatus === "pending" || kycStatus === "rejected") && (
-                    <Link to="/kyc" className="font-body text-xs text-primary hover:underline">Start →</Link>
+                    <Link to="/kyc" className="font-body text-xs text-primary hover:underline">{t("settings.kycStart")}</Link>
                   )}
                 </div>
               </div>
@@ -191,10 +318,10 @@ const Settings = () => {
                 <Activity size={18} className="text-primary" />
               </div>
               <div className="flex-1">
-                <h3 className="font-heading font-bold text-base text-foreground">Activity Log</h3>
-                <p className="font-body text-xs text-muted-foreground">View recent account activity and security events</p>
+                <h3 className="font-heading font-bold text-base text-foreground">{t("settings.activityLog")}</h3>
+                <p className="font-body text-xs text-muted-foreground">{t("settings.activityLogSub")}</p>
               </div>
-              <span className="font-body text-sm text-primary">View →</span>
+              <span className="font-body text-sm text-primary">{t("settings.viewActivity")}</span>
             </div>
           </Link>
         </motion.div>
@@ -202,9 +329,9 @@ const Settings = () => {
         {/* Danger Zone */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
           <div className="bg-card border border-destructive/20 rounded-lg p-6">
-            <h3 className="font-heading font-bold text-base text-foreground mb-2">Danger Zone</h3>
-            <p className="font-body text-sm text-muted-foreground mb-4">Sign out of your account</p>
-            <Button variant="destructive" onClick={signOut}>Sign Out</Button>
+            <h3 className="font-heading font-bold text-base text-foreground mb-2">{t("settings.dangerZone")}</h3>
+            <p className="font-body text-sm text-muted-foreground mb-4">{t("settings.dangerZoneSub")}</p>
+            <Button variant="destructive" onClick={signOut}>{t("common.signOut")}</Button>
           </div>
         </motion.div>
       </div>

@@ -1,12 +1,6 @@
 import { motion } from "framer-motion";
 import { Zap, Shield, BarChart3, Globe } from "lucide-react";
-
-const features = [
-  { icon: Zap, title: "Zero Fees", desc: "Trade without commissions. Every dollar you invest goes directly into your portfolio." },
-  { icon: Shield, title: "Bank-Grade Security", desc: "Multi-sig wallets, cold storage, and real-time threat monitoring protect your assets." },
-  { icon: BarChart3, title: "Advanced Analytics", desc: "Professional-grade charts, indicators, and portfolio insights at your fingertips." },
-  { icon: Globe, title: "500+ Trading Pairs", desc: "Access the widest selection of crypto assets across all major blockchains." },
-];
+import { useTranslation } from "react-i18next";
 
 const container = {
   hidden: {},
@@ -22,6 +16,13 @@ const item = {
 };
 
 const FeaturesGrid = () => {
+  const { t } = useTranslation();
+  const features = [
+    { icon: Zap, title: t("features.zeroFees"), desc: t("features.zeroFeesDesc") },
+    { icon: Shield, title: t("features.bankGrade"), desc: t("features.bankGradeDesc") },
+    { icon: BarChart3, title: t("features.analytics"), desc: t("features.analyticsDesc") },
+    { icon: Globe, title: t("features.tradingPairs"), desc: t("features.tradingPairsDesc") },
+  ];
   return (
     <section className="px-6 lg:px-12 py-20 bg-surface">
       <div className="max-w-7xl mx-auto">
@@ -32,9 +33,9 @@ const FeaturesGrid = () => {
           transition={{ duration: 0.6 }}
           className="text-center mb-12"
         >
-          <h2 className="font-heading font-bold text-3xl text-foreground mb-3">Why Monetra?</h2>
+          <h2 className="font-heading font-bold text-3xl text-foreground mb-3">{t("features.sectionTitle")}</h2>
           <p className="font-body text-sm text-muted-foreground max-w-md mx-auto">
-            Built from the ground up for serious investors who demand performance.
+            {t("features.sectionSubtitle")}
           </p>
         </motion.div>
 
@@ -50,7 +51,7 @@ const FeaturesGrid = () => {
               key={f.title}
               variants={item}
               whileHover={{ y: -6, transition: { duration: 0.2 } }}
-              className="bg-card border border-border rounded-lg p-6 hover:border-border-light hover:bg-card-hover transition-all group cursor-pointer"
+              className="bg-card border border-border rounded-lg p-6 hover:border-border-light hover:bg-card-hover transition-all group"
             >
               <motion.div
                 whileHover={{ scale: 1.1, rotate: 5 }}

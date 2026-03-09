@@ -1,37 +1,42 @@
 import { ArrowUpRight, ArrowDownLeft } from "lucide-react";
 import { Link } from "react-router-dom";
-
-const mockActivity = [
-  { type: "deposit", asset: "USDT", amount: "+$5,000.00", date: "Mar 6, 2026", status: "completed" },
-  { type: "investment", asset: "Growth Engine", amount: "-$3,000.00", date: "Mar 5, 2026", status: "completed" },
-  { type: "return", asset: "Stable Shield", amount: "+$42.50", date: "Mar 4, 2026", status: "completed" },
-  { type: "deposit", asset: "BTC", amount: "+$2,500.00", date: "Mar 3, 2026", status: "completed" },
-  { type: "withdrawal", asset: "ETH", amount: "-$800.00", date: "Mar 2, 2026", status: "pending" },
-];
+import { useTranslation } from "react-i18next";
+import type { Transaction } from "@/types";
 
 interface RecentActivityProps {
-  transactions: any[];
+  transactions: Transaction[];
 }
 
 const RecentActivity = ({ transactions }: RecentActivityProps) => {
-  const data = transactions.length > 0 ? transactions : [];
-  const displayData = data.length > 0 ? [] : mockActivity;
+  const { t } = useTranslation();
+
+  const typeLabels: Record<string, string> = {
+    deposit: t("activity.deposit"),
+    withdrawal: t("activity.withdrawal"),
+    investment: t("activity.investment"),
+    return: t("activity.return"),
+    fee: t("activity.fee"),
+  };
 
   return (
     <div className="bg-card border border-border rounded-lg p-5">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="font-heading font-bold text-base text-foreground">Recent Activity</h3>
-        <Link to="/transactions" className="font-body text-xs text-primary hover:underline">View All →</Link>
+        <h3 className="font-heading font-bold text-base text-foreground">{t("activity.title")}</h3>
+        <Link to="/transactions" className="font-body text-xs text-primary hover:underline">{t("common.viewAll")}</Link>
       </div>
 
-      {displayData.length === 0 && data.length === 0 ? (
-        <p className="font-body text-sm text-muted-foreground text-center py-8">No transactions yet</p>
+      {transactions.length === 0 ? (
+        <p className="font-body text-sm text-muted-foreground text-center py-8">{t("activity.noTransactions")}</p>
       ) : (
         <div className="space-y-3">
-          {displayData.map((tx, i) => {
+          {transactions.slice(0, 5).map((tx) => {
             const isIncome = tx.type === "deposit" || tx.type === "return";
+            const amount = Number(tx.amount);
+            const formattedAmount = `${isIncome ? "+" : "-"}$${Math.abs(amount).toLocaleString("en-US", { minimumFractionDigits: 2 })}`;
+            const formattedDate = new Date(tx.created_at).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+
             return (
-              <div key={i} className="flex items-center gap-3 py-2">
+              <Link to={`/transactions/${tx.id}`} key={tx.id} className="flex items-center gap-3 py-2 hover:bg-secondary/50 rounded-lg px-2 -mx-2 transition-colors">
                 <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${isIncome ? "bg-accent-dim" : "bg-destructive/10"}`}>
                   {isIncome ? (
                     <ArrowDownLeft size={14} className="text-primary" />
@@ -40,14 +45,14 @@ const RecentActivity = ({ transactions }: RecentActivityProps) => {
                   )}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="font-body text-sm text-foreground capitalize">{tx.type}</p>
-                  <p className="font-mono text-xs text-muted-foreground">{tx.asset}</p>
+                  <p className="font-body text-sm text-foreground">{typeLabels[tx.type] || tx.type}</p>
+                  <p className="font-mono text-xs text-muted-foreground">{tx.currency || "USD"}</p>
                 </div>
                 <div className="text-right">
-                  <p className={`font-mono text-sm ${isIncome ? "text-primary" : "text-foreground"}`}>{tx.amount}</p>
-                  <p className="font-mono text-xs text-muted-foreground">{tx.date}</p>
+                  <p className={`font-mono text-sm ${isIncome ? "text-primary" : "text-foreground"}`}>{formattedAmount}</p>
+                  <p className="font-mono text-xs text-muted-foreground">{formattedDate}</p>
                 </div>
-              </div>
+              </Link>
             );
           })}
         </div>

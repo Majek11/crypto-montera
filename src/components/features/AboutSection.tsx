@@ -1,12 +1,6 @@
 import { motion } from "framer-motion";
 import { Shield, TrendingUp, Users, Clock } from "lucide-react";
-
-const values = [
-  { icon: Shield, title: "Security First", desc: "Enterprise-grade security with multi-layer encryption and cold storage." },
-  { icon: TrendingUp, title: "Smart Growth", desc: "AI-driven investment strategies that adapt to market conditions." },
-  { icon: Users, title: "Community Driven", desc: "Join 2M+ investors who trust Monetra with their portfolio." },
-  { icon: Clock, title: "24/7 Support", desc: "Round-the-clock expert support for all your investment needs." },
-];
+import { useTranslation } from "react-i18next";
 
 const container = {
   hidden: {},
@@ -19,6 +13,13 @@ const item = {
 };
 
 const AboutSection = () => {
+  const { t } = useTranslation();
+  const values = [
+    { icon: Shield, title: t("aboutSection.securityFirst"), desc: t("aboutSection.securityFirstDesc") },
+    { icon: TrendingUp, title: t("aboutSection.smartGrowth"), desc: t("aboutSection.smartGrowthDesc") },
+    { icon: Users, title: t("aboutSection.communityDriven"), desc: t("aboutSection.communityDrivenDesc") },
+    { icon: Clock, title: t("aboutSection.support247"), desc: t("aboutSection.support247Desc") },
+  ];
   return (
     <section id="about" className="px-6 lg:px-12 py-24 bg-background">
       <div className="max-w-7xl mx-auto">
@@ -36,7 +37,7 @@ const AboutSection = () => {
               transition={{ delay: 0.2 }}
               className="font-mono text-xs text-primary tracking-wider uppercase mb-4 block"
             >
-              About Monetra
+              {t("aboutSection.label")}
             </motion.span>
             <motion.h2
               initial={{ opacity: 0, y: 20 }}
@@ -45,7 +46,7 @@ const AboutSection = () => {
               transition={{ delay: 0.3, duration: 0.6 }}
               className="font-display text-5xl sm:text-6xl text-foreground mb-6 leading-[0.95]"
             >
-              BUILT FOR THE<br />FUTURE OF FINANCE
+              {t("aboutSection.title1")}<br />{t("aboutSection.title2")}
             </motion.h2>
             <motion.p
               initial={{ opacity: 0, y: 20 }}
@@ -54,8 +55,7 @@ const AboutSection = () => {
               transition={{ delay: 0.4 }}
               className="font-body text-muted-foreground mb-6 leading-relaxed"
             >
-              Monetra was founded with a single mission: to make institutional-grade crypto investing accessible to everyone. 
-              Our platform combines cutting-edge technology with transparent fee structures to deliver an unmatched experience.
+              {t("aboutSection.desc1")}
             </motion.p>
             <motion.p
               initial={{ opacity: 0, y: 20 }}
@@ -64,8 +64,7 @@ const AboutSection = () => {
               transition={{ delay: 0.5 }}
               className="font-body text-muted-foreground leading-relaxed"
             >
-              With over $4.2 billion in assets under management and a team of 120+ blockchain experts, 
-              we're redefining what it means to invest in digital assets.
+              {t("aboutSection.desc2")}
             </motion.p>
           </motion.div>
 
@@ -81,7 +80,7 @@ const AboutSection = () => {
                 key={v.title}
                 variants={item}
                 whileHover={{ y: -4, transition: { duration: 0.2 } }}
-                className="bg-card border border-border rounded-lg p-5 hover:border-border-light transition-all cursor-pointer"
+                className="bg-card border border-border rounded-lg p-5 hover:border-border-light transition-all"
               >
                 <motion.div
                   whileHover={{ rotate: 10, scale: 1.1 }}

@@ -2,11 +2,13 @@ import { motion } from "framer-motion";
 import { ArrowUpRight, Shield, Zap, TrendingUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import coinEthereum from "@/assets/coin-ethereum.png";
 import coinBinance from "@/assets/coin-binance.png";
 import coinTether from "@/assets/coin-tether.png";
 
 const HeroSection = () => {
+  const { t } = useTranslation();
   return (
     <section className="relative min-h-[85vh] flex items-center justify-center px-6 lg:px-12">
       {/* Subtle radial glow */}
@@ -23,8 +25,8 @@ const HeroSection = () => {
           className="flex items-center justify-center gap-2 mb-8"
         >
           <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse-glow" />
-          <span className="font-mono text-xs text-primary tracking-wider">LIVE</span>
-          <span className="font-mono text-xs text-muted-foreground">· Market open</span>
+          <span className="font-mono text-xs text-primary tracking-wider">{t("hero.live")}</span>
+          <span className="font-mono text-xs text-muted-foreground">· {t("hero.marketOpen")}</span>
         </motion.div>
 
         <motion.h1
@@ -33,8 +35,8 @@ const HeroSection = () => {
           transition={{ delay: 0.2, duration: 0.6 }}
           className="font-display text-5xl sm:text-6xl lg:text-7xl leading-[0.95] tracking-tight text-foreground mb-6"
         >
-          INVEST IN CRYPTO<br />
-          WITH <span className="text-primary">CONFIDENCE</span>
+          {t("hero.title1")}<br />
+          {t("hero.title2")} <span className="text-primary">{t("hero.titleHighlight")}</span>
         </motion.h1>
 
         <motion.p
@@ -43,9 +45,9 @@ const HeroSection = () => {
           transition={{ delay: 0.4, duration: 0.5 }}
           className="font-body text-base sm:text-lg text-muted-foreground max-w-lg mx-auto mb-10 leading-relaxed"
         >
-          Zero fees. Instant settlement. Bank-grade security.
+          {t("hero.subtitle1")}
           <br className="hidden sm:block" />
-          A platform built for investors who demand more.
+          {t("hero.subtitle2")}
         </motion.p>
 
         {/* Floating crypto icons */}
@@ -78,14 +80,16 @@ const HeroSection = () => {
         >
           <Link to="/signup">
             <Button variant="hero" size="lg" className="text-base px-8 py-6">
-              Get Started <ArrowUpRight size={16} />
+              {t("common.getStarted")} <ArrowUpRight size={16} />
             </Button>
           </Link>
-          <Link to="/#plans">
+          <button
+            onClick={() => document.getElementById("plans")?.scrollIntoView({ behavior: "smooth" })}
+          >
             <Button variant="hero-ghost" size="lg" className="text-base px-8 py-6">
-              View Plans
+              {t("hero.viewPlans")}
             </Button>
-          </Link>
+          </button>
         </motion.div>
 
         {/* Minimal stats */}
@@ -96,9 +100,9 @@ const HeroSection = () => {
           className="flex justify-center gap-10 mt-16"
         >
           {[
-            { value: "$4.2B+", label: "Assets Managed", icon: TrendingUp },
-            { value: "2.1M+", label: "Active Users", icon: Zap },
-            { value: "500+", label: "Trading Pairs", icon: Shield },
+            { value: "$4.2B+", label: t("hero.assetsManaged"), icon: TrendingUp },
+            { value: "2.1M+", label: t("hero.activeUsers"), icon: Zap },
+            { value: "500+", label: t("hero.tradingPairs"), icon: Shield },
           ].map((stat) => (
             <div key={stat.label} className="flex items-center gap-3 text-left">
               <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">

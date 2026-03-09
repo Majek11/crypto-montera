@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { motion } from "framer-motion";
 import { ArrowUpRight, ArrowDownRight, TrendingUp, DollarSign, Star, Wallet } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import AppLayout from "@/components/layout/AppLayout";
 import PortfolioChart from "@/components/dashboard/PortfolioChart";
 import HoldingsTable from "@/components/dashboard/HoldingsTable";
@@ -20,6 +21,7 @@ const StatCardSkeleton = () => (
 );
 
 const Dashboard = () => {
+  const { t } = useTranslation();
   const { data: investments = [], isLoading: invLoading } = useInvestments();
   const { data: transactions = [], isLoading: txLoading } = useTransactions({ limit: 10 });
   const { data: wallets = [], isLoading: walletLoading } = useWallets();
@@ -48,32 +50,32 @@ const Dashboard = () => {
 
   const statCards = [
     {
-      label: "Portfolio Value",
+      label: t("dashboard.portfolioValue"),
       value: `$${stats.totalValue.toLocaleString("en-US", { minimumFractionDigits: 2 })}`,
-      sub: `Invested: $${stats.totalInvested.toLocaleString("en-US", { minimumFractionDigits: 2 })}`,
+      sub: t("dashboard.invested", { amount: stats.totalInvested.toLocaleString("en-US", { minimumFractionDigits: 2 }) }),
       icon: TrendingUp,
       positive: true,
     },
     {
-      label: "Total P&L",
+      label: t("dashboard.totalPnl"),
       value: `${stats.pnl >= 0 ? "+" : "-"}$${Math.abs(stats.pnl).toLocaleString("en-US", { minimumFractionDigits: 2 })}`,
-      sub: `${stats.pnl >= 0 ? "+" : ""}${stats.pnlPercent}% all time`,
+      sub: t("dashboard.allTime", { percent: `${stats.pnl >= 0 ? "+" : ""}${stats.pnlPercent}` }),
       icon: stats.pnl >= 0 ? ArrowUpRight : ArrowDownRight,
       positive: stats.pnl >= 0,
     },
     {
-      label: "Wallet Balance",
+      label: t("dashboard.walletBalance"),
       value: `$${stats.walletBalance.toLocaleString("en-US", { minimumFractionDigits: 2 })}`,
-      sub: `${wallets.length} wallet${wallets.length !== 1 ? "s" : ""} connected`,
+      sub: t("dashboard.walletsConnected", { count: wallets.length }),
       icon: Wallet,
       positive: true,
     },
     {
-      label: "Best Performer",
+      label: t("dashboard.bestPerformer"),
       value: stats.bestPlanName,
       sub: stats.bestReturn > 0
-        ? `+$${stats.bestReturn.toLocaleString("en-US", { minimumFractionDigits: 2 })} return`
-        : "No returns yet",
+        ? t("dashboard.returnAmount", { amount: stats.bestReturn.toLocaleString("en-US", { minimumFractionDigits: 2 }) })
+        : t("dashboard.noReturnsYet"),
       icon: Star,
       positive: true,
     },
@@ -81,11 +83,11 @@ const Dashboard = () => {
 
   return (
     <AppLayout>
-      <SEO title="Dashboard" description="Your live crypto portfolio — balance, investments, recent transactions, and performance chart." noIndex />
+      <SEO title={t("dashboard.title")} description="Your live crypto portfolio — balance, investments, recent transactions, and performance chart." noIndex />
       <div className="p-6 lg:p-8 max-w-7xl mx-auto">
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
-          <h1 className="font-heading font-bold text-3xl text-foreground mb-1">Dashboard</h1>
-          <p className="font-body text-sm text-muted-foreground">Your portfolio at a glance</p>
+          <h1 className="font-heading font-bold text-3xl text-foreground mb-1">{t("dashboard.title")}</h1>
+          <p className="font-body text-sm text-muted-foreground">{t("dashboard.subtitle")}</p>
         </motion.div>
 
         {/* Stat cards */}

@@ -1,21 +1,11 @@
 import { motion } from "framer-motion";
+import { useTranslation } from "react-i18next";
 import {
   Accordion,
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-
-const faqs = [
-  { q: "How does Monetra's zero-fee model work?", a: "We earn revenue through institutional partnerships and premium services, not from your trades. This means every dollar you invest goes directly into your portfolio with zero commissions or hidden fees." },
-  { q: "Is my investment secure?", a: "Absolutely. We use bank-grade security including multi-signature wallets, cold storage for 98% of assets, real-time threat monitoring, and SOC 2 Type II certification. Your assets are also insured up to $250M." },
-  { q: "What is the minimum investment amount?", a: "You can start investing with as little as $100 on our Starter plan. Our plans range from conservative to aggressive growth strategies, each with different minimum thresholds." },
-  { q: "How do managed investment plans work?", a: "Our AI-driven algorithms automatically allocate your investment across a diversified portfolio of digital assets based on your selected risk level. Plans are rebalanced regularly to optimize returns." },
-  { q: "Can I withdraw my funds at any time?", a: "Yes, you can withdraw your funds at any time. Withdrawals typically process within 24 hours. Some plans may have a minimum holding period for optimal returns, but there are no lock-up penalties." },
-  { q: "Do I need to complete KYC verification?", a: "KYC verification is required for investments above $10,000 or when using fiat on-ramps. For smaller investments using crypto deposits, you can start trading immediately." },
-  { q: "What cryptocurrencies does Monetra support?", a: "We support over 500 trading pairs across all major blockchains including Bitcoin, Ethereum, Solana, Polygon, Avalanche, and more. New assets are added regularly." },
-  { q: "How are returns calculated?", a: "Returns are calculated based on the performance of your portfolio assets. We provide real-time tracking of your investment value, including unrealized gains/losses and historical performance." },
-];
 
 const container = {
   hidden: {},
@@ -28,6 +18,17 @@ const item = {
 };
 
 const FAQSection = () => {
+  const { t } = useTranslation();
+  const faqs = [
+    { q: t("faqSection.q1"), a: t("faqSection.a1") },
+    { q: t("faqSection.q2"), a: t("faqSection.a2") },
+    { q: t("faqSection.q3"), a: t("faqSection.a3") },
+    { q: t("faqSection.q4"), a: t("faqSection.a4") },
+    { q: t("faqSection.q5"), a: t("faqSection.a5") },
+    { q: t("faqSection.q6"), a: t("faqSection.a6") },
+    { q: t("faqSection.q7"), a: t("faqSection.a7") },
+    { q: t("faqSection.q8"), a: t("faqSection.a8") },
+  ];
   return (
     <section id="faq" className="px-6 lg:px-12 py-24 bg-surface">
       <div className="max-w-3xl mx-auto">
@@ -38,10 +39,10 @@ const FAQSection = () => {
           transition={{ duration: 0.6 }}
           className="text-center mb-14"
         >
-          <span className="font-mono text-xs text-primary tracking-wider uppercase mb-4 block">FAQ</span>
-          <h2 className="font-display text-5xl sm:text-6xl text-foreground mb-4">FREQUENTLY ASKED QUESTIONS</h2>
+          <span className="font-mono text-xs text-primary tracking-wider uppercase mb-4 block">{t("faqSection.label")}</span>
+          <h2 className="font-display text-5xl sm:text-6xl text-foreground mb-4">{t("faqSection.title")}</h2>
           <p className="font-body text-muted-foreground">
-            Everything you need to know about investing with Monetra.
+            {t("faqSection.subtitle")}
           </p>
         </motion.div>
 

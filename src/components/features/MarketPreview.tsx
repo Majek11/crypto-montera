@@ -183,9 +183,9 @@ const MarketPreview = () => {
                       {formatMarketCap(coin.market_cap)}
                     </td>
                     <td className="py-4 text-right">
-                      <button className="font-body text-xs text-primary opacity-0 group-hover:opacity-100 transition-opacity">
+                      <a href="/signup" className="font-body text-xs text-primary opacity-0 group-hover:opacity-100 transition-opacity">
                         Trade →
-                      </button>
+                      </a>
                     </td>
                   </motion.tr>
                 );

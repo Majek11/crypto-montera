@@ -1,11 +1,5 @@
 import { motion } from "framer-motion";
-
-const stats = [
-  { label: "Market Cap", value: "$2.45T", change: "+3.2%" },
-  { label: "24h Volume", value: "$98.7B", change: "+12.5%" },
-  { label: "BTC Dominance", value: "52.4%", change: "-0.3%" },
-  { label: "Active Traders", value: "2.1M", change: "+8.7%" },
-];
+import { useTranslation } from "react-i18next";
 
 const container = {
   hidden: {},
@@ -18,6 +12,13 @@ const item = {
 };
 
 const StatsBar = () => {
+  const { t } = useTranslation();
+  const stats = [
+    { label: t("stats.marketCap"), value: "$2.45T", change: "+3.2%" },
+    { label: t("stats.volume24h"), value: "$98.7B", change: "+12.5%" },
+    { label: t("stats.btcDominance"), value: "52.4%", change: "-0.3%" },
+    { label: t("stats.activeTraders"), value: "2.1M", change: "+8.7%" },
+  ];
   return (
     <section className="border-y border-border bg-surface px-6 lg:px-12 py-8">
       <motion.div
