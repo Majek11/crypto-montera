@@ -18,7 +18,6 @@ import {
 import { toast } from "sonner";
 import NotificationBell from "@/components/notifications/NotificationBell";
 import CommandPalette from "@/components/CommandPalette";
-import TawkToChat from "@/components/TawkToChat";
 
 const navItems = [
   { label: "Dashboard", icon: LayoutDashboard, path: "/dashboard" },
@@ -63,7 +62,6 @@ const AppLayout = ({ children }: { children: ReactNode }) => {
   return (
     <div className="min-h-screen bg-background flex">
       <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />
-      <TawkToChat />
 
       {/* Sidebar — desktop */}
       <aside className="hidden lg:flex flex-col w-64 border-r border-border bg-surface p-4">
