@@ -1,6 +1,6 @@
-import { useMemo } from "react";
+import { useMemo, useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { ArrowUpRight, ArrowDownRight, TrendingUp, DollarSign, Star, Wallet } from "lucide-react";
+import { ArrowUpRight, ArrowDownRight, TrendingUp, Star, Wallet } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import AppLayout from "@/components/layout/AppLayout";
 import PortfolioChart from "@/components/dashboard/PortfolioChart";
@@ -8,7 +8,8 @@ import HoldingsTable from "@/components/dashboard/HoldingsTable";
 import RecentActivity from "@/components/dashboard/RecentActivity";
 import { useInvestments } from "@/hooks/useInvestments";
 import { useTransactions } from "@/hooks/useTransactions";
-import { useWallets } from "@/hooks/useWallets";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
 import SEO from "@/components/SEO";
 
@@ -22,18 +23,24 @@ const StatCardSkeleton = () => (
 
 const Dashboard = () => {
   const { t } = useTranslation();
+  const { user } = useAuth();
   const { data: investments = [], isLoading: invLoading } = useInvestments();
   const { data: transactions = [], isLoading: txLoading } = useTransactions({ limit: 10 });
-  const { data: wallets = [], isLoading: walletLoading } = useWallets();
+  const [availableBalance, setAvailableBalance] = useState(0);
 
-  const loading = invLoading || txLoading || walletLoading;
+  useEffect(() => {
+    if (!user) return;
+    supabase.from("profiles").select("balance").eq("user_id", user.id).single()
+      .then(({ data }) => { if (data) setAvailableBalance(Number((data as any).balance) || 0); });
+  }, [user]);
+
+  const loading = invLoading || txLoading;
 
   const stats = useMemo(() => {
     const totalInvested = investments.reduce((s, i) => s + i.amount, 0);
     const totalValue = investments.reduce((s, i) => s + (i.current_value ?? i.amount), 0);
     const pnl = totalValue - totalInvested;
     const pnlPercent = totalInvested > 0 ? ((pnl / totalInvested) * 100).toFixed(2) : "0.00";
-    const walletBalance = wallets.reduce((s, w) => s + w.balance, 0);
 
     let bestPlanName = "—";
     let bestReturn = -Infinity;
@@ -45,8 +52,8 @@ const Dashboard = () => {
       }
     }
 
-    return { totalInvested, totalValue, pnl, pnlPercent, walletBalance, bestPlanName, bestReturn };
-  }, [investments, wallets]);
+    return { totalInvested, totalValue, pnl, pnlPercent, bestPlanName, bestReturn };
+  }, [investments]);
 
   const statCards = [
     {
@@ -64,9 +71,9 @@ const Dashboard = () => {
       positive: stats.pnl >= 0,
     },
     {
-      label: t("dashboard.walletBalance"),
-      value: `$${stats.walletBalance.toLocaleString("en-US", { minimumFractionDigits: 2 })}`,
-      sub: t("dashboard.walletsConnected", { count: wallets.length }),
+      label: "Available Balance",
+      value: `$${availableBalance.toLocaleString("en-US", { minimumFractionDigits: 2 })}`,
+      sub: "Ready to invest",
       icon: Wallet,
       positive: true,
     },
