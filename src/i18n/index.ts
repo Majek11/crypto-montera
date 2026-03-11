@@ -66,7 +66,7 @@ i18n
     detection: {
       order: ["localStorage", "navigator"],
       caches: ["localStorage"],
-      lookupLocalStorage: "monetra-language",
+      lookupLocalStorage: "montera-language",
     },
   });
 

@@ -49,7 +49,7 @@ const Footer = () => {
               <div className="w-7 h-7 rounded-lg bg-primary flex items-center justify-center">
                 <span className="text-primary-foreground font-bold text-sm">◈</span>
               </div>
-              <span className="font-heading font-bold text-lg text-foreground">Monetra</span>
+              <span className="font-heading font-bold text-lg text-foreground">Montera</span>
             </Link>
             <p className="font-body text-xs text-muted-foreground leading-relaxed mb-6">
               {t("footer.tagline")}

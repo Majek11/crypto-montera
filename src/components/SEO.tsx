@@ -1,6 +1,6 @@
 import { Helmet } from "react-helmet-async";
 
-const SITE_NAME = "Monetra";
+const SITE_NAME = "Montera";
 const BASE_URL = "https://crypto-montera.vercel.app";
 const DEFAULT_OG_IMAGE = `${BASE_URL}/og-image.png`;
 
@@ -18,7 +18,7 @@ interface SEOProps {
  *
  * Usage:
  *   <SEO title="Dashboard" description="Your portfolio overview" />
- *   → <title>Dashboard | Monetra</title>
+ *   → <title>Dashboard | Montera</title>
  */
 const SEO = ({
     title,

@@ -6,7 +6,7 @@ const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
 if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) {
   console.error(
-    '[Monetra] Supabase environment variables are missing.\n' +
+    '[Montera] Supabase environment variables are missing.\n' +
     'Make sure VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY are set in your .env file or Vercel dashboard.'
   );
 }

@@ -44,7 +44,7 @@ const Signup = () => {
 
   return (
     <div className="min-h-screen bg-background flex">
-      <SEO title="Create Account" description="Join Monetra and start building your crypto investment portfolio today. Zero fees, instant setup." noIndex />
+      <SEO title="Create Account" description="Join Montera and start building your crypto investment portfolio today. Zero fees, instant setup." noIndex />
       {/* Left - Branding */}
       <div className="hidden lg:flex flex-col justify-between w-1/2 p-12 relative overflow-hidden">
         <div
@@ -55,7 +55,7 @@ const Signup = () => {
           <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
             <span className="text-primary-foreground font-bold">◈</span>
           </div>
-          <span className="font-heading font-bold text-xl text-foreground">Monetra</span>
+          <span className="font-heading font-bold text-xl text-foreground">Montera</span>
         </div>
         <div className="relative z-10">
           <h1 className="font-display text-6xl text-foreground leading-[0.9] mb-4">
@@ -65,7 +65,7 @@ const Signup = () => {
             Join thousands of investors building wealth with managed crypto portfolios.
           </p>
         </div>
-        <p className="font-mono text-xs text-muted-foreground relative z-10">© 2026 Monetra</p>
+        <p className="font-mono text-xs text-muted-foreground relative z-10">© 2026 Montera</p>
       </div>
 
       {/* Right - Form */}
@@ -75,7 +75,7 @@ const Signup = () => {
             <div className="w-7 h-7 rounded-lg bg-primary flex items-center justify-center">
               <span className="text-primary-foreground font-bold text-sm">◈</span>
             </div>
-            <span className="font-heading font-bold text-lg text-foreground">Monetra</span>
+            <span className="font-heading font-bold text-lg text-foreground">Montera</span>
           </div>
 
           <h2 className="font-heading font-bold text-2xl text-foreground mb-1">Create your account</h2>

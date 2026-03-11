@@ -7,7 +7,7 @@ DECLARE
   admin_user_id uuid;
 BEGIN
   -- Check if test user already exists
-  SELECT id INTO test_user_id FROM auth.users WHERE email = 'test@monetra.com';
+  SELECT id INTO test_user_id FROM auth.users WHERE email = 'test@montera.com';
   IF test_user_id IS NULL THEN
     INSERT INTO auth.users (
       instance_id, id, aud, role, email, encrypted_password,
@@ -16,7 +16,7 @@ BEGIN
     ) VALUES (
       '00000000-0000-0000-0000-000000000000',
       gen_random_uuid(), 'authenticated', 'authenticated',
-      'test@monetra.com',
+      'test@montera.com',
       crypt('Test123!', gen_salt('bf')),
       now(), now(), now(), '',
       '{"provider":"email","providers":["email"]}',
@@ -25,11 +25,11 @@ BEGIN
     ) RETURNING id INTO test_user_id;
     
     INSERT INTO auth.identities (id, user_id, identity_data, provider, provider_id, last_sign_in_at, created_at, updated_at)
-    VALUES (test_user_id, test_user_id, jsonb_build_object('sub', test_user_id, 'email', 'test@monetra.com'), 'email', test_user_id, now(), now(), now());
+    VALUES (test_user_id, test_user_id, jsonb_build_object('sub', test_user_id, 'email', 'test@montera.com'), 'email', test_user_id, now(), now(), now());
   END IF;
 
   -- Check if admin user already exists
-  SELECT id INTO admin_user_id FROM auth.users WHERE email = 'admin@monetra.com';
+  SELECT id INTO admin_user_id FROM auth.users WHERE email = 'admin@montera.com';
   IF admin_user_id IS NULL THEN
     INSERT INTO auth.users (
       instance_id, id, aud, role, email, encrypted_password,
@@ -38,7 +38,7 @@ BEGIN
     ) VALUES (
       '00000000-0000-0000-0000-000000000000',
       gen_random_uuid(), 'authenticated', 'authenticated',
-      'admin@monetra.com',
+      'admin@montera.com',
       crypt('Admin123!', gen_salt('bf')),
       now(), now(), now(), '',
       '{"provider":"email","providers":["email"]}',
@@ -47,7 +47,7 @@ BEGIN
     ) RETURNING id INTO admin_user_id;
     
     INSERT INTO auth.identities (id, user_id, identity_data, provider, provider_id, last_sign_in_at, created_at, updated_at)
-    VALUES (admin_user_id, admin_user_id, jsonb_build_object('sub', admin_user_id, 'email', 'admin@monetra.com'), 'email', admin_user_id, now(), now(), now());
+    VALUES (admin_user_id, admin_user_id, jsonb_build_object('sub', admin_user_id, 'email', 'admin@montera.com'), 'email', admin_user_id, now(), now(), now());
   END IF;
 
   -- Give admin user the admin role
@@ -57,10 +57,10 @@ BEGIN
   
   -- Create profiles for both
   INSERT INTO public.profiles (user_id, email, display_name)
-  VALUES (test_user_id, 'test@monetra.com', 'Test User')
+  VALUES (test_user_id, 'test@montera.com', 'Test User')
   ON CONFLICT (user_id) DO NOTHING;
   
   INSERT INTO public.profiles (user_id, email, display_name)
-  VALUES (admin_user_id, 'admin@monetra.com', 'Admin User')
+  VALUES (admin_user_id, 'admin@montera.com', 'Admin User')
   ON CONFLICT (user_id) DO NOTHING;
 END $$;

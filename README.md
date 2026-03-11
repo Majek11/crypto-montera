@@ -1,4 +1,4 @@
-# Monetra — Crypto Investment Platform
+# Montera — Crypto Investment Platform
 
 A professional crypto investment platform built with React, Vite, TypeScript, Supabase, and Tailwind CSS.
 

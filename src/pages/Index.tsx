@@ -18,7 +18,7 @@ const Index = () => {
       <SEO
         canonical="/"
         title="Crypto Investment Platform"
-        description="Monetra — Zero fees. Instant settlement. Bank-grade security. Invest in Bitcoin, Ethereum, Solana, and 500+ crypto assets with professional-grade analytics."
+        description="Montera — Zero fees. Instant settlement. Bank-grade security. Invest in Bitcoin, Ethereum, Solana, and 500+ crypto assets with professional-grade analytics."
       />
       <Navbar />
       <div className="pt-16">

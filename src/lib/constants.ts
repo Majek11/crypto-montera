@@ -32,6 +32,17 @@ export const WALLET_CHAINS = [
 ] as const;
 export type WalletChain = (typeof WALLET_CHAINS)[number];
 
+// ─── Platform deposit wallet addresses (REPLACE WITH YOUR REAL ADDRESSES) ──────
+// These are Montera's receiving wallets. Users send funds here to deposit.
+
+export const PLATFORM_DEPOSIT_ADDRESSES: Record<string, string> = {
+    ethereum: "0xYourEthereumWalletAddressHere",
+    bitcoin: "bc1YourBitcoinWalletAddressHere",
+    solana: "YourSolanaWalletAddressHere",
+    bsc: "0xYourBSCWalletAddressHere",
+    polygon: "0xYourPolygonWalletAddressHere",
+};
+
 // ─── Pagination ───────────────────────────────────────────────────────────────
 
 /** Default number of rows fetched per page in paginated lists */

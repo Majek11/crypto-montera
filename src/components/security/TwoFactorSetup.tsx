@@ -39,7 +39,7 @@ const TwoFactorSetup = ({ onStatusChange }: TwoFactorSetupProps) => {
   const startEnrollment = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase.auth.mfa.enroll({ factorType: "totp", friendlyName: "Monetra Authenticator" });
+      const { data, error } = await supabase.auth.mfa.enroll({ factorType: "totp", friendlyName: "Montera Authenticator" });
       if (error) throw error;
       setFactorId(data.id);
       setQrCode(data.totp.qr_code);
