@@ -11,6 +11,7 @@ import { User, Shield, Activity, Camera, Trash2 } from "lucide-react";
 import { Link } from "react-router-dom";
 import AppLayout from "@/components/layout/AppLayout";
 import TwoFactorSetup from "@/components/security/TwoFactorSetup";
+import ReferralCard from "@/components/features/ReferralCard";
 import EmailVerificationBanner, { EmailVerificationStatus } from "@/components/security/EmailVerificationBanner";
 import { logAudit } from "@/lib/audit";
 import { z } from "zod";
@@ -308,6 +309,11 @@ const Settings = () => {
         {/* 2FA Setup */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="mb-6">
           <TwoFactorSetup />
+        </motion.div>
+
+        {/* Referral Program */}
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.22 }} className="mb-6">
+          <ReferralCard />
         </motion.div>
 
         {/* Activity Log Link */}

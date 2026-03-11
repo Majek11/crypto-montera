@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Bell } from "lucide-react";
+import { Bell, BellOff } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import {
@@ -26,10 +26,46 @@ const typeColors: Record<string, string> = {
   info: "bg-blue-400/20 text-blue-400",
 };
 
+const typeEmoji: Record<string, string> = {
+  success: "✅",
+  warning: "⚠️",
+  error: "❌",
+  info: "ℹ️",
+};
+
+// Request browser push notification permission
+async function requestPushPermission(): Promise<boolean> {
+  if (!("Notification" in window)) return false;
+  if (Notification.permission === "granted") return true;
+  if (Notification.permission === "denied") return false;
+  const permission = await Notification.requestPermission();
+  return permission === "granted";
+}
+
+// Fire a browser notification
+function fireBrowserNotification(title: string, body: string, type: string) {
+  if (Notification.permission !== "granted") return;
+  const emoji = typeEmoji[type] || "";
+  new Notification(`${emoji} ${title}`, {
+    body,
+    icon: "/favicon.ico",
+    badge: "/favicon.ico",
+    tag: "montera-notification",
+  });
+}
+
 const NotificationBell = () => {
   const { user } = useAuth();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [open, setOpen] = useState(false);
+  const [pushEnabled, setPushEnabled] = useState(false);
+
+  // Check push permission on mount
+  useEffect(() => {
+    if ("Notification" in window) {
+      setPushEnabled(Notification.permission === "granted");
+    }
+  }, []);
 
   const fetchNotifications = async () => {
     if (!user) return;
@@ -44,14 +80,21 @@ const NotificationBell = () => {
 
   useEffect(() => {
     fetchNotifications();
-
     if (!user) return;
+
     const channel = supabase
       .channel("notifications")
       .on(
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "notifications", filter: `user_id=eq.${user.id}` },
-        () => fetchNotifications()
+        (payload) => {
+          fetchNotifications();
+          // Fire browser notification if permission granted
+          const n = payload.new as Notification;
+          if (n && document.visibilityState === "hidden") {
+            fireBrowserNotification(n.title, n.message, n.type);
+          }
+        }
       )
       .subscribe();
 
@@ -75,6 +118,14 @@ const NotificationBell = () => {
     fetchNotifications();
   };
 
+  const handleEnablePush = async () => {
+    const granted = await requestPushPermission();
+    setPushEnabled(granted);
+    if (!granted) {
+      alert("Please allow notifications in your browser settings to enable push alerts.");
+    }
+  };
+
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
@@ -90,11 +141,22 @@ const NotificationBell = () => {
       <PopoverContent align="end" className="w-80 p-0 bg-card border-border">
         <div className="flex items-center justify-between px-4 py-3 border-b border-border">
           <span className="font-heading font-bold text-sm text-foreground">Notifications</span>
-          {unreadCount > 0 && (
-            <button onClick={markAllRead} className="font-body text-xs text-primary hover:underline">
-              Mark all read
-            </button>
-          )}
+          <div className="flex items-center gap-2">
+            {!pushEnabled && "Notification" in window && (
+              <button
+                onClick={handleEnablePush}
+                className="font-body text-xs text-muted-foreground hover:text-foreground flex items-center gap-1 transition-colors"
+                title="Enable browser push notifications"
+              >
+                <BellOff size={12} /> Enable
+              </button>
+            )}
+            {unreadCount > 0 && (
+              <button onClick={markAllRead} className="font-body text-xs text-primary hover:underline">
+                Mark all read
+              </button>
+            )}
+          </div>
         </div>
         <div className="max-h-80 overflow-y-auto">
           {notifications.length === 0 ? (
@@ -107,9 +169,7 @@ const NotificationBell = () => {
               <button
                 key={n.id}
                 onClick={() => markRead(n.id)}
-                className={`w-full text-left px-4 py-3 border-b border-border/30 hover:bg-card-hover transition-colors ${
-                  !n.is_read ? "bg-accent-dim/20" : ""
-                }`}
+                className={`w-full text-left px-4 py-3 border-b border-border/30 hover:bg-card-hover transition-colors ${!n.is_read ? "bg-accent-dim/20" : ""}`}
               >
                 <div className="flex items-start gap-3">
                   <div className={`w-2 h-2 rounded-full mt-1.5 flex-shrink-0 ${!n.is_read ? "bg-primary" : "bg-transparent"}`} />
