@@ -37,6 +37,7 @@ const AdminKYC = lazy(() => import("./pages/admin/AdminKYC"));
 const AdminAnalytics = lazy(() => import("./pages/admin/AdminAnalytics"));
 const AdminPlans = lazy(() => import("./pages/admin/AdminPlans"));
 const AdminTransactions = lazy(() => import("./pages/admin/AdminTransactions"));
+const AdminInvestments = lazy(() => import("./pages/admin/AdminInvestments"));
 const AdminBonus = lazy(() => import("./pages/admin/AdminBonus"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
@@ -100,6 +101,7 @@ const App = () => (
                     <Route path="/admin/transactions" element={<AdminRoute><AdminTransactions /></AdminRoute>} />
                     <Route path="/admin/analytics" element={<AdminRoute><AdminAnalytics /></AdminRoute>} />
                     <Route path="/admin/plans" element={<AdminRoute><AdminPlans /></AdminRoute>} />
+                    <Route path="/admin/investments" element={<AdminRoute><AdminInvestments /></AdminRoute>} />
                     <Route path="/admin/bonus" element={<AdminRoute><AdminBonus /></AdminRoute>} />
 
                     <Route path="*" element={<NotFound />} />

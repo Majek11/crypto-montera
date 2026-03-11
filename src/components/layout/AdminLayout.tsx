@@ -12,6 +12,7 @@ import {
   ChevronRight,
   CreditCard,
   Gift,
+  TrendingUp,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -19,6 +20,7 @@ const adminNav = [
   { label: "Overview", icon: LayoutDashboard, path: "/admin" },
   { label: "Users", icon: Users, path: "/admin/users" },
   { label: "Transactions", icon: CreditCard, path: "/admin/transactions" },
+  { label: "Investments", icon: TrendingUp, path: "/admin/investments" },
   { label: "KYC Review", icon: ShieldCheck, path: "/admin/kyc" },
   { label: "Bonuses", icon: Gift, path: "/admin/bonus" },
   { label: "Analytics", icon: BarChart3, path: "/admin/analytics" },
@@ -56,8 +58,8 @@ const AdminLayout = ({ children }: { children: ReactNode }) => {
                 key={item.path}
                 to={item.path}
                 className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-body font-medium transition-all ${isActive
-                    ? "bg-accent-dim text-primary"
-                    : "text-muted-foreground hover:text-foreground hover:bg-secondary"
+                  ? "bg-accent-dim text-primary"
+                  : "text-muted-foreground hover:text-foreground hover:bg-secondary"
                   }`}
               >
                 <item.icon size={18} />
