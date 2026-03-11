@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowDownLeft, Copy, Check, AlertCircle, Info, ArrowRight } from "lucide-react";
+import { ArrowDownLeft, Copy, Check, AlertCircle, Info, ArrowRight, Upload, ImageIcon, CheckCircle2 } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -28,6 +28,12 @@ const Deposit = () => {
   const [copied, setCopied] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [step, setStep] = useState<"configure" | "confirm" | "submitted">("configure");
+  const [createdTxId, setCreatedTxId] = useState<string | null>(null);
+  const [receipt, setReceipt] = useState<File | null>(null);
+  const [receiptPreview, setReceiptPreview] = useState<string | null>(null);
+  const [uploadingReceipt, setUploadingReceipt] = useState(false);
+  const [receiptUploaded, setReceiptUploaded] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const platformAddress = PLATFORM_DEPOSIT_ADDRESSES[selectedChain.id] || "Address not configured";
 
@@ -51,23 +57,61 @@ const Deposit = () => {
     if (!user) return;
     setSubmitting(true);
 
-    const { error } = await supabase.from("transactions").insert({
+    const { data, error } = await supabase.from("transactions").insert({
       user_id: user.id,
       type: "deposit" as const,
       amount: Number(amount),
       currency: selectedCurrency,
+      network: selectedChain.id,
       status: "pending" as const,
-      reference: txHash || null,
+      tx_hash: txHash || null,
       description: `${selectedCurrency} deposit via ${selectedChain.name} — sent to Montera wallet`,
-    });
+    }).select("id").single();
 
     if (error) {
       toast.error(error.message);
       setSubmitting(false);
     } else {
+      setCreatedTxId(data?.id || null);
       setStep("submitted");
       setSubmitting(false);
     }
+  };
+
+  const handleReceiptUpload = async () => {
+    if (!receipt || !createdTxId || !user) return;
+    setUploadingReceipt(true);
+
+    const ext = receipt.name.split(".").pop();
+    const filePath = `${user.id}/${createdTxId}.${ext}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from("receipts")
+      .upload(filePath, receipt, { upsert: true });
+
+    if (uploadError) {
+      toast.error("Failed to upload receipt: " + uploadError.message);
+      setUploadingReceipt(false);
+      return;
+    }
+
+    const { data: urlData } = supabase.storage.from("receipts").getPublicUrl(filePath);
+
+    await supabase.from("transactions")
+      .update({ receipt_url: urlData.publicUrl })
+      .eq("id", createdTxId);
+
+    setReceiptUploaded(true);
+    setUploadingReceipt(false);
+    toast.success("Receipt uploaded! Admin will process your deposit faster.");
+  };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) { toast.error("File too large. Max 5MB."); return; }
+    setReceipt(file);
+    setReceiptPreview(URL.createObjectURL(file));
   };
 
   return (
@@ -220,36 +264,69 @@ const Deposit = () => {
           )}
 
           {step === "submitted" && (
-            <motion.div key="submitted" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="bg-card border border-border rounded-lg p-8 text-center">
-              <motion.div
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                transition={{ type: "spring", stiffness: 300, damping: 20, delay: 0.1 }}
-                className="w-16 h-16 rounded-full bg-accent-dim flex items-center justify-center mx-auto mb-4"
-              >
-                <Check size={28} className="text-primary" />
-              </motion.div>
-              <h2 className="font-heading font-bold text-xl text-foreground mb-2">Deposit Submitted!</h2>
-              <p className="font-body text-sm text-muted-foreground mb-6">
-                Your deposit of <span className="text-primary font-medium">{Number(amount).toLocaleString()} {selectedCurrency}</span> is under review. We'll credit your account within <span className="text-foreground font-medium">1–24 hours</span> after confirming it on-chain.
-              </p>
-
-              {/* Status Tracker */}
-              <div className="flex items-center justify-center gap-2 mb-8">
-                {["Submitted", "Processing", "Confirmed"].map((s, i) => (
-                  <div key={s} className="flex items-center gap-2">
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center font-mono text-xs font-bold ${i === 0 ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground"}`}>
-                      {i + 1}
+            <motion.div key="submitted" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="space-y-4">
+              {/* Success header */}
+              <div className="bg-card border border-border rounded-lg p-8 text-center">
+                <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring", stiffness: 300, damping: 20, delay: 0.1 }}
+                  className="w-16 h-16 rounded-full bg-accent-dim flex items-center justify-center mx-auto mb-4">
+                  <Check size={28} className="text-primary" />
+                </motion.div>
+                <h2 className="font-heading font-bold text-xl text-foreground mb-2">Deposit Submitted!</h2>
+                <p className="font-body text-sm text-muted-foreground mb-6">
+                  Your deposit of <span className="text-primary font-medium">{Number(amount).toLocaleString()} {selectedCurrency}</span> is under review. We'll credit your account within <span className="text-foreground font-medium">1–24 hours</span>.
+                </p>
+                <div className="flex items-center justify-center gap-2">
+                  {["Submitted", "Processing", "Confirmed"].map((s, i) => (
+                    <div key={s} className="flex items-center gap-2">
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center font-mono text-xs font-bold ${i === 0 ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground"}`}>{i + 1}</div>
+                      <span className={`font-body text-xs ${i === 0 ? "text-primary" : "text-muted-foreground"}`}>{s}</span>
+                      {i < 2 && <div className="w-8 h-px bg-border" />}
                     </div>
-                    <span className={`font-body text-xs ${i === 0 ? "text-primary" : "text-muted-foreground"}`}>{s}</span>
-                    {i < 2 && <div className="w-8 h-px bg-border" />}
-                  </div>
-                ))}
+                  ))}
+                </div>
+              </div>
+
+              {/* Receipt Upload */}
+              <div className={`bg-card border rounded-lg p-6 ${receiptUploaded ? "border-primary/30" : "border-amber-400/30"}`}>
+                <div className="flex items-center gap-2 mb-3">
+                  {receiptUploaded ? <CheckCircle2 size={16} className="text-primary" /> : <Upload size={16} className="text-amber-400" />}
+                  <h3 className="font-heading font-bold text-base text-foreground">
+                    {receiptUploaded ? "Receipt Uploaded ✅" : "Upload Payment Receipt (Recommended)"}
+                  </h3>
+                </div>
+                {receiptUploaded ? (
+                  <p className="font-body text-sm text-muted-foreground">Your receipt has been sent to our team. This will speed up your deposit confirmation significantly.</p>
+                ) : (
+                  <>
+                    <p className="font-body text-sm text-muted-foreground mb-4">
+                      Upload a screenshot of your payment. This helps our team verify your deposit <span className="text-foreground font-medium">up to 10x faster</span>.
+                    </p>
+                    {receiptPreview ? (
+                      <div className="mb-4">
+                        <img src={receiptPreview} alt="Receipt preview" className="w-full max-h-48 object-contain rounded-lg border border-border mb-2" />
+                        <button onClick={() => { setReceipt(null); setReceiptPreview(null); }} className="font-body text-xs text-muted-foreground hover:text-foreground">Remove &amp; choose different file</button>
+                      </div>
+                    ) : (
+                      <button onClick={() => fileInputRef.current?.click()}
+                        className="w-full border-2 border-dashed border-border hover:border-primary/50 rounded-lg p-6 flex flex-col items-center gap-2 transition-colors mb-4 group">
+                        <ImageIcon size={24} className="text-muted-foreground group-hover:text-primary transition-colors" />
+                        <span className="font-body text-sm text-muted-foreground">Click to upload receipt</span>
+                        <span className="font-body text-xs text-muted-foreground">JPG, PNG, PDF — Max 5MB</span>
+                      </button>
+                    )}
+                    <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp,application/pdf" className="hidden" onChange={handleFileSelect} />
+                    {receipt && (
+                      <Button variant="hero" className="w-full" onClick={handleReceiptUpload} disabled={uploadingReceipt}>
+                        {uploadingReceipt ? <><div className="w-4 h-4 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin mr-2" />Uploading...</> : <><Upload size={14} className="mr-2" />Upload Receipt</>}
+                      </Button>
+                    )}
+                  </>
+                )}
               </div>
 
               <div className="flex gap-3 justify-center">
                 <Button variant="outline" onClick={() => navigate("/transactions")}>View Transactions</Button>
-                <Button variant="hero" onClick={() => { setStep("configure"); setAmount(""); setTxHash(""); }}>New Deposit</Button>
+                <Button variant="hero" onClick={() => { setStep("configure"); setAmount(""); setTxHash(""); setReceipt(null); setReceiptPreview(null); setReceiptUploaded(false); }}>New Deposit</Button>
               </div>
             </motion.div>
           )}
