@@ -199,3 +199,18 @@
 .dark .shadow-card {
   box-shadow: 0 1px 3px rgba(0,0,0,0.6), 0 0 0 1px hsl(var(--border));
 }
+
+/* ── Tidio Chat Widget Overrides ──────────────────────────────────────── */
+/* We can only override the outer wrapper (not the iframe internals)      */
+
+#tidio-chat {
+  /* Move up from the bottom edge so it clears mobile nav bars */
+  bottom: 20px !important;
+  right: 20px !important;
+}
+
+#tidio-chat iframe {
+  /* Subtle glow matching Montera's green accent on the launcher button */
+  filter: drop-shadow(0 4px 24px hsl(130 100% 65% / 0.25)) !important;
+  border-radius: 50% !important;
+}
