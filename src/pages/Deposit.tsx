@@ -97,7 +97,7 @@ const Deposit = () => {
 
     const { data: urlData } = supabase.storage.from("receipts").getPublicUrl(filePath);
 
-    await supabase.from("transactions")
+    await (supabase.from("transactions") as any)
       .update({ receipt_url: urlData.publicUrl })
       .eq("id", createdTxId);
 
@@ -265,69 +265,87 @@ const Deposit = () => {
 
           {step === "submitted" && (
             <motion.div key="submitted" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="space-y-4">
-              {/* Success header */}
+              {/* Header based on receiptUploaded */}
               <div className="bg-card border border-border rounded-lg p-8 text-center">
                 <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring", stiffness: 300, damping: 20, delay: 0.1 }}
                   className="w-16 h-16 rounded-full bg-accent-dim flex items-center justify-center mx-auto mb-4">
-                  <Check size={28} className="text-primary" />
+                  {receiptUploaded ? <Check size={28} className="text-primary" /> : <Upload size={28} className="text-primary" />}
                 </motion.div>
-                <h2 className="font-heading font-bold text-xl text-foreground mb-2">Deposit Submitted!</h2>
+                <h2 className="font-heading font-bold text-xl text-foreground mb-2">
+                  {receiptUploaded ? "Receipt Uploaded!" : "Deposit Submitted!"}
+                </h2>
                 <p className="font-body text-sm text-muted-foreground mb-6">
-                  Your deposit of <span className="text-primary font-medium">{Number(amount).toLocaleString()} {selectedCurrency}</span> is under review. We'll credit your account within <span className="text-foreground font-medium">1–24 hours</span>.
+                  {receiptUploaded ?
+                    `Your receipt for ${Number(amount).toLocaleString()} ${selectedCurrency} has been sent. We'll credit your account within 1–24 hours.` :
+                    `Your deposit of ${Number(amount).toLocaleString()} ${selectedCurrency} is under review. Upload a receipt to speed up verification.`
+                  }
                 </p>
                 <div className="flex items-center justify-center gap-2">
                   {["Submitted", "Processing", "Confirmed"].map((s, i) => (
                     <div key={s} className="flex items-center gap-2">
-                      <div className={`w-8 h-8 rounded-full flex items-center justify-center font-mono text-xs font-bold ${i === 0 ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground"}`}>{i + 1}</div>
-                      <span className={`font-body text-xs ${i === 0 ? "text-primary" : "text-muted-foreground"}`}>{s}</span>
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center font-mono text-xs font-bold ${(i === 0 || (i === 1 && receiptUploaded) || (i === 2 && receiptUploaded)) ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground"
+                        }`}>{i + 1}</div>
+                      <span className={`font-body text-xs ${(i === 0 || (i === 1 && receiptUploaded) || (i === 2 && receiptUploaded)) ? "text-primary" : "text-muted-foreground"
+                        }`}>{s}</span>
                       {i < 2 && <div className="w-8 h-px bg-border" />}
                     </div>
                   ))}
                 </div>
               </div>
 
-              {/* Receipt Upload */}
-              <div className={`bg-card border rounded-lg p-6 ${receiptUploaded ? "border-primary/30" : "border-amber-400/30"}`}>
-                <div className="flex items-center gap-2 mb-3">
-                  {receiptUploaded ? <CheckCircle2 size={16} className="text-primary" /> : <Upload size={16} className="text-amber-400" />}
-                  <h3 className="font-heading font-bold text-base text-foreground">
-                    {receiptUploaded ? "Receipt Uploaded ✅" : "Upload Payment Receipt (Recommended)"}
-                  </h3>
+              {/* Receipt Upload — REQUIRED */}
+              {!receiptUploaded ? (
+                <div className="bg-card border border-amber-400/30 rounded-xl p-6">
+                  <div className="flex items-center justify-between mb-1">
+                    <div className="flex items-center gap-2">
+                      <Upload size={14} className="text-amber-400" />
+                      <h3 className="font-heading font-bold text-base text-foreground">Payment Receipt</h3>
+                    </div>
+                    <span className="font-mono text-[10px] bg-amber-400/15 text-amber-400 px-2 py-0.5 rounded-pill border border-amber-400/20">REQUIRED</span>
+                  </div>
+                  <p className="font-body text-xs text-muted-foreground mb-4">
+                    Upload a screenshot of your payment. Your deposit <span className="text-amber-400 font-medium">won't be reviewed without this</span>.
+                  </p>
+                  {receiptPreview ? (
+                    <div className="mb-4">
+                      <img src={receiptPreview} alt="Receipt preview" className="w-full max-h-56 object-contain rounded-lg border border-border mb-2" />
+                      <button onClick={() => { setReceipt(null); setReceiptPreview(null); }} className="font-body text-xs text-muted-foreground hover:text-foreground transition-colors">✕ Remove and choose different file</button>
+                    </div>
+                  ) : (
+                    <button onClick={() => fileInputRef.current?.click()}
+                      className="w-full border-2 border-dashed border-amber-400/30 hover:border-amber-400/60 bg-amber-400/5 hover:bg-amber-400/10 rounded-lg p-8 flex flex-col items-center gap-2 transition-all mb-4 group">
+                      <ImageIcon size={28} className="text-amber-400/50 group-hover:text-amber-400 transition-colors" />
+                      <span className="font-body text-sm font-medium text-foreground">Click to select receipt</span>
+                      <span className="font-body text-xs text-muted-foreground">JPG, PNG, PDF · Max 5MB</span>
+                    </button>
+                  )}
+                  <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp,application/pdf" className="hidden" onChange={handleFileSelect} />
+                  <Button variant="hero" className="w-full py-5" onClick={handleReceiptUpload} disabled={!receipt || uploadingReceipt}>
+                    {uploadingReceipt
+                      ? <><div className="w-4 h-4 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin mr-2" />Uploading...</>
+                      : receipt
+                        ? <><Upload size={14} className="mr-2" />Submit Receipt & Complete Deposit</>
+                        : "Select a Receipt File First"}
+                  </Button>
                 </div>
-                {receiptUploaded ? (
-                  <p className="font-body text-sm text-muted-foreground">Your receipt has been sent to our team. This will speed up your deposit confirmation significantly.</p>
-                ) : (
-                  <>
-                    <p className="font-body text-sm text-muted-foreground mb-4">
-                      Upload a screenshot of your payment. This helps our team verify your deposit <span className="text-foreground font-medium">up to 10x faster</span>.
-                    </p>
-                    {receiptPreview ? (
-                      <div className="mb-4">
-                        <img src={receiptPreview} alt="Receipt preview" className="w-full max-h-48 object-contain rounded-lg border border-border mb-2" />
-                        <button onClick={() => { setReceipt(null); setReceiptPreview(null); }} className="font-body text-xs text-muted-foreground hover:text-foreground">Remove &amp; choose different file</button>
-                      </div>
-                    ) : (
-                      <button onClick={() => fileInputRef.current?.click()}
-                        className="w-full border-2 border-dashed border-border hover:border-primary/50 rounded-lg p-6 flex flex-col items-center gap-2 transition-colors mb-4 group">
-                        <ImageIcon size={24} className="text-muted-foreground group-hover:text-primary transition-colors" />
-                        <span className="font-body text-sm text-muted-foreground">Click to upload receipt</span>
-                        <span className="font-body text-xs text-muted-foreground">JPG, PNG, PDF — Max 5MB</span>
-                      </button>
-                    )}
-                    <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp,application/pdf" className="hidden" onChange={handleFileSelect} />
-                    {receipt && (
-                      <Button variant="hero" className="w-full" onClick={handleReceiptUpload} disabled={uploadingReceipt}>
-                        {uploadingReceipt ? <><div className="w-4 h-4 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin mr-2" />Uploading...</> : <><Upload size={14} className="mr-2" />Upload Receipt</>}
-                      </Button>
-                    )}
-                  </>
-                )}
-              </div>
+              ) : (
+                <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+                  className="bg-accent-dim/20 border border-primary/20 rounded-xl p-5 flex items-center gap-3">
+                  <CheckCircle2 size={20} className="text-primary flex-shrink-0" />
+                  <p className="font-body text-sm text-muted-foreground">Receipt received! Our team will verify and credit your balance within <span className="text-foreground font-medium">1–24 hours</span>.</p>
+                </motion.div>
+              )}
 
-              <div className="flex gap-3 justify-center">
-                <Button variant="outline" onClick={() => navigate("/transactions")}>View Transactions</Button>
-                <Button variant="hero" onClick={() => { setStep("configure"); setAmount(""); setTxHash(""); setReceipt(null); setReceiptPreview(null); setReceiptUploaded(false); }}>New Deposit</Button>
-              </div>
+              {/* Action buttons — only after receipt is uploaded */}
+              {receiptUploaded && (
+                <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="flex gap-3 justify-center pt-1">
+                  <Button variant="outline" onClick={() => navigate("/transactions")}>View Transactions</Button>
+                  <Button variant="hero" onClick={() => {
+                    setStep("configure"); setAmount(""); setTxHash("");
+                    setReceipt(null); setReceiptPreview(null); setReceiptUploaded(false);
+                  }}>New Deposit</Button>
+                </motion.div>
+              )}
             </motion.div>
           )}
         </AnimatePresence>
