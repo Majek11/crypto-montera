@@ -53,6 +53,7 @@ interface InvestModalProps {
 }
 
 const InvestModal = ({ plan, balance, onClose, onSuccess }: InvestModalProps) => {
+  const navigate = useNavigate();
   const [amount, setAmount] = useState(String(plan.min_investment));
   const [submitting, setSubmitting] = useState(false);
 
@@ -174,7 +175,15 @@ const InvestModal = ({ plan, balance, onClose, onSuccess }: InvestModalProps) =>
         {insufficient && (
           <div className="flex items-center gap-2 bg-destructive/10 border border-destructive/20 rounded-lg px-3 py-2 mb-4">
             <AlertCircle size={14} className="text-destructive flex-shrink-0" />
-            <p className="font-body text-xs text-destructive">Insufficient balance. <button className="underline" onClick={onClose}>Deposit funds first →</button></p>
+            <p className="font-body text-xs text-destructive">
+              Insufficient balance.{" "}
+              <button
+                className="underline font-medium"
+                onClick={() => { onClose(); navigate("/deposit"); }}
+              >
+                Deposit funds first →
+              </button>
+            </p>
           </div>
         )}
         {belowMin && !insufficient && (
@@ -343,9 +352,12 @@ const Plans = () => {
               Invest Now <ArrowUpRight size={14} />
             </Button>
             {!canAfford && user && (
-              <p className="font-body text-[11px] text-amber-400 text-center flex items-center justify-center gap-1">
-                <AlertCircle size={10} /> Deposit ${(plan.min_investment - balance).toLocaleString()} more to invest
-              </p>
+              <button
+                onClick={() => navigate("/deposit")}
+                className="font-body text-[11px] text-amber-400 text-center flex items-center justify-center gap-1 w-full hover:text-amber-300 transition-colors"
+              >
+                <AlertCircle size={10} /> Need ${(plan.min_investment - balance).toLocaleString()} more — Deposit now →
+              </button>
             )}
           </div>
         )}
