@@ -49,14 +49,15 @@ const AdminTransactions = () => {
 
   const fetchData = useCallback(async () => {
     setLoading(true);
+    const sb = supabase as any;
     const [txRes, profilesRes] = await Promise.all([
       supabase.from("transactions").select("*").order("created_at", { ascending: false }),
-      supabase.from("profiles").select("user_id, display_name, email, balance, avatar_url"),
+      sb.from("profiles").select("user_id, display_name, email, balance, avatar_url"),
     ]);
     if (txRes.data) setTransactions(txRes.data);
     if (profilesRes.data) {
       const map: Record<string, any> = {};
-      profilesRes.data.forEach((p) => { map[p.user_id] = p; });
+      (profilesRes.data as any[]).forEach((p: any) => { map[p.user_id] = p; });
       setProfiles(map);
     }
     setLoading(false);
@@ -79,11 +80,13 @@ const AdminTransactions = () => {
     if (!selectedTx) return;
     setActionLoading(true);
 
-    const { data, error } = await supabase.rpc("admin_update_transaction", {
+    const sb = supabase as any;
+    const rpcResult: { data: any; error: any } = await sb.rpc("admin_update_transaction", {
       p_transaction_id: selectedTx.id,
       p_status: action,
       p_notes: reviewNotes || null,
     });
+    const { data, error } = rpcResult;
 
     if (error || data?.error) {
       toast.error(data?.error || error?.message || "Action failed");
@@ -273,7 +276,7 @@ const AdminTransactions = () => {
 
       {/* Transaction Detail & Review Dialog */}
       <Dialog open={!!selectedTx} onOpenChange={(o) => { if (!o) setSelectedTx(null); }}>
-        <DialogContent className="bg-card border-border max-w-lg max-h-[90vh] overflow-y-auto">
+        <DialogContent className="bg-card border-border max-w-4xl">
           <DialogHeader>
             <DialogTitle className="font-heading text-foreground flex items-center gap-2">
               Review Transaction
@@ -286,106 +289,112 @@ const AdminTransactions = () => {
           </DialogHeader>
 
           {selectedTx && (
-            <div className="space-y-4">
-              {/* Transaction Details */}
-              <div className="bg-secondary rounded-lg p-4 space-y-3">
-                <h4 className="font-body text-xs text-muted-foreground uppercase tracking-wide mb-2">Transaction Details</h4>
-                {[
-                  { label: "Type", value: selectedTx.type, mono: false, capitalize: true },
-                  { label: "Amount", value: `$${Number(selectedTx.amount).toLocaleString()} ${selectedTx.currency}`, mono: true },
-                  { label: "Network", value: selectedTx.network || "—", mono: true, capitalize: true },
-                  { label: "Date", value: new Date(selectedTx.created_at).toLocaleString("en-US", { dateStyle: "medium", timeStyle: "short" }), mono: true },
-                  { label: "Reference", value: selectedTx.reference || "—", mono: true },
-                ].map(({ label, value, mono, capitalize }) => (
-                  <div key={label} className="flex justify-between items-start gap-4">
-                    <span className="font-body text-xs text-muted-foreground flex-shrink-0">{label}</span>
-                    <span className={`text-right ${mono ? "font-mono text-xs" : "font-body text-sm"} text-foreground ${capitalize ? "capitalize" : ""} break-all`}>{value}</span>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Left Column: Transaction Details, User Info, Review Notes */}
+              <div className="space-y-4">
+                {/* Transaction Details */}
+                <div className="bg-secondary rounded-lg p-4 space-y-3">
+                  <h4 className="font-body text-xs text-muted-foreground uppercase tracking-wide mb-2">Transaction Details</h4>
+                  {[
+                    { label: "Type", value: selectedTx.type, mono: false, capitalize: true },
+                    { label: "Amount", value: `$${Number(selectedTx.amount).toLocaleString()} ${selectedTx.currency}`, mono: true },
+                    { label: "Network", value: selectedTx.network || "—", mono: true, capitalize: true },
+                    { label: "Date", value: new Date(selectedTx.created_at).toLocaleString("en-US", { dateStyle: "medium", timeStyle: "short" }), mono: true },
+                    { label: "Reference", value: selectedTx.reference || "—", mono: true },
+                  ].map(({ label, value, mono, capitalize }) => (
+                    <div key={label} className="flex justify-between items-start gap-4">
+                      <span className="font-body text-xs text-muted-foreground flex-shrink-0">{label}</span>
+                      <span className={`text-right ${mono ? "font-mono text-xs" : "font-body text-sm"} text-foreground ${capitalize ? "capitalize" : ""} break-all`}>{value}</span>
+                    </div>
+                  ))}
+                </div>
+
+                {/* User Info */}
+                {selectedProfile && (
+                  <div className="bg-secondary rounded-lg p-4">
+                    <h4 className="font-body text-xs text-muted-foreground uppercase tracking-wide mb-2">User</h4>
+                    <div className="flex items-center gap-3 mb-2">
+                      <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
+                        {selectedProfile.avatar_url
+                          ? <img src={selectedProfile.avatar_url} className="w-8 h-8 rounded-full object-cover" alt="" />
+                          : <User size={14} className="text-primary" />}
+                      </div>
+                      <div>
+                        <p className="font-body text-sm text-foreground">{selectedProfile.display_name}</p>
+                        <p className="font-mono text-xs text-muted-foreground">{selectedProfile.email}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1 mt-1">
+                      <Wallet size={11} className="text-muted-foreground" />
+                      <span className="font-body text-xs text-muted-foreground">Current Balance:</span>
+                      <span className="font-mono text-xs text-primary">${Number(selectedProfile.balance || 0).toLocaleString("en-US", { minimumFractionDigits: 2 })}</span>
+                    </div>
                   </div>
-                ))}
+                )}
+
+                {/* Review Notes */}
+                {selectedTx.status === "pending" || selectedTx.status === "processing" ? (
+                  <div>
+                    <label className="font-body text-sm text-muted-foreground mb-1.5 block">Admin Notes (shown to user)</label>
+                    <Textarea
+                      value={reviewNotes}
+                      onChange={(e) => setReviewNotes(e.target.value)}
+                      placeholder="Optional: reason for rejection, request more info, etc."
+                      className="bg-input border-border text-foreground"
+                      rows={3}
+                    />
+                  </div>
+                ) : null}
               </div>
 
-              {/* TX Hash + Explorer */}
-              {selectedTx.tx_hash && (
-                <div className="bg-secondary rounded-lg p-4">
-                  <h4 className="font-body text-xs text-muted-foreground uppercase tracking-wide mb-2">Transaction Hash</h4>
-                  <div className="flex items-center gap-2">
-                    <code className="flex-1 font-mono text-xs text-foreground bg-input rounded-md px-2 py-1.5 break-all">{selectedTx.tx_hash}</code>
-                    <button onClick={() => copyHash(selectedTx.tx_hash)} className="p-1.5 rounded-md bg-input hover:bg-secondary transition-colors flex-shrink-0">
-                      {copiedHash ? <Check size={12} className="text-primary" /> : <Copy size={12} className="text-muted-foreground" />}
-                    </button>
+              {/* Right Column: TX Hash + Explorer, Receipt Image */}
+              <div className="space-y-4">
+                {/* TX Hash + Explorer */}
+                {selectedTx.tx_hash && (
+                  <div className="bg-secondary rounded-lg p-4">
+                    <h4 className="font-body text-xs text-muted-foreground uppercase tracking-wide mb-2">Transaction Hash</h4>
+                    <div className="flex items-center gap-2">
+                      <code className="flex-1 font-mono text-xs text-foreground bg-input rounded-md px-2 py-1.5 break-all">{selectedTx.tx_hash}</code>
+                      <button onClick={() => copyHash(selectedTx.tx_hash)} className="p-1.5 rounded-md bg-input hover:bg-secondary transition-colors flex-shrink-0">
+                        {copiedHash ? <Check size={12} className="text-primary" /> : <Copy size={12} className="text-muted-foreground" />}
+                      </button>
+                    </div>
+                    {explorerInfo && (
+                      <a href={`${explorerInfo.url}${selectedTx.tx_hash}`} target="_blank" rel="noopener noreferrer"
+                        className="mt-2 flex items-center gap-1 font-body text-xs text-primary hover:underline">
+                        <ExternalLink size={11} /> Verify on {explorerInfo.name}
+                      </a>
+                    )}
                   </div>
-                  {explorerInfo && (
-                    <a href={`${explorerInfo.url}${selectedTx.tx_hash}`} target="_blank" rel="noopener noreferrer"
-                      className="mt-2 flex items-center gap-1 font-body text-xs text-primary hover:underline">
-                      <ExternalLink size={11} /> Verify on {explorerInfo.name}
+                )}
+
+                {/* Receipt Image */}
+                {selectedTx.receipt_url && (
+                  <div className="bg-secondary rounded-lg p-4">
+                    <h4 className="font-body text-xs text-muted-foreground uppercase tracking-wide mb-2 flex items-center gap-1">
+                      <ImageIcon size={11} /> Payment Receipt
+                    </h4>
+                    <a href={selectedTx.receipt_url} target="_blank" rel="noopener noreferrer">
+                      <img
+                        src={selectedTx.receipt_url}
+                        alt="Payment receipt"
+                        className="w-full rounded-lg object-contain max-h-64 border border-border hover:opacity-90 transition-opacity cursor-pointer"
+                      />
+                      <p className="font-body text-xs text-primary mt-1.5 flex items-center gap-1">
+                        <ExternalLink size={10} /> Open full size
+                      </p>
                     </a>
-                  )}
-                </div>
-              )}
-
-              {/* User Info */}
-              {selectedProfile && (
-                <div className="bg-secondary rounded-lg p-4">
-                  <h4 className="font-body text-xs text-muted-foreground uppercase tracking-wide mb-2">User</h4>
-                  <div className="flex items-center gap-3 mb-2">
-                    <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
-                      {selectedProfile.avatar_url
-                        ? <img src={selectedProfile.avatar_url} className="w-8 h-8 rounded-full object-cover" alt="" />
-                        : <User size={14} className="text-primary" />}
-                    </div>
-                    <div>
-                      <p className="font-body text-sm text-foreground">{selectedProfile.display_name}</p>
-                      <p className="font-mono text-xs text-muted-foreground">{selectedProfile.email}</p>
-                    </div>
                   </div>
-                  <div className="flex items-center gap-1 mt-1">
-                    <Wallet size={11} className="text-muted-foreground" />
-                    <span className="font-body text-xs text-muted-foreground">Current Balance:</span>
-                    <span className="font-mono text-xs text-primary">${Number(selectedProfile.balance || 0).toLocaleString("en-US", { minimumFractionDigits: 2 })}</span>
+                )}
+
+                {/* No receipt notice */}
+                {!selectedTx.receipt_url && selectedTx.type === "deposit" && (
+                  <div className="flex items-center gap-2 bg-amber-400/10 border border-amber-400/20 rounded-lg px-3 py-2">
+                    <ImageIcon size={13} className="text-amber-400 flex-shrink-0" />
+                    <p className="font-body text-xs text-amber-400">No receipt uploaded by user yet. Verify via TX hash if available.</p>
                   </div>
-                </div>
-              )}
-
-              {/* Receipt Image */}
-              {selectedTx.receipt_url && (
-                <div className="bg-secondary rounded-lg p-4">
-                  <h4 className="font-body text-xs text-muted-foreground uppercase tracking-wide mb-2 flex items-center gap-1">
-                    <ImageIcon size={11} /> Payment Receipt
-                  </h4>
-                  <a href={selectedTx.receipt_url} target="_blank" rel="noopener noreferrer">
-                    <img
-                      src={selectedTx.receipt_url}
-                      alt="Payment receipt"
-                      className="w-full rounded-lg object-contain max-h-64 border border-border hover:opacity-90 transition-opacity cursor-pointer"
-                    />
-                    <p className="font-body text-xs text-primary mt-1.5 flex items-center gap-1">
-                      <ExternalLink size={10} /> Open full size
-                    </p>
-                  </a>
-                </div>
-              )}
-
-              {/* No receipt notice */}
-              {!selectedTx.receipt_url && selectedTx.type === "deposit" && (
-                <div className="flex items-center gap-2 bg-amber-400/10 border border-amber-400/20 rounded-lg px-3 py-2">
-                  <ImageIcon size={13} className="text-amber-400 flex-shrink-0" />
-                  <p className="font-body text-xs text-amber-400">No receipt uploaded by user yet. Verify via TX hash if available.</p>
-                </div>
-              )}
-
-              {/* Review Notes */}
-              {selectedTx.status === "pending" || selectedTx.status === "processing" ? (
-                <div>
-                  <label className="font-body text-sm text-muted-foreground mb-1.5 block">Admin Notes (shown to user)</label>
-                  <Textarea
-                    value={reviewNotes}
-                    onChange={(e) => setReviewNotes(e.target.value)}
-                    placeholder="Optional: reason for rejection, request more info, etc."
-                    className="bg-input border-border text-foreground"
-                    rows={3}
-                  />
-                </div>
-              ) : null}
+                )}
+              </div>
             </div>
           )}
 
