@@ -15,6 +15,8 @@ import {
   FileCheck,
   Activity,
   Search,
+  ArrowDownLeft,
+  ArrowUpRight,
 } from "lucide-react";
 import { toast } from "sonner";
 import NotificationBell from "@/components/notifications/NotificationBell";
@@ -25,6 +27,8 @@ import { supabase } from "@/integrations/supabase/client";
 const navKeys = [
   { labelKey: "nav.dashboard", icon: LayoutDashboard, path: "/dashboard" },
   { labelKey: "nav.investmentPlans", icon: TrendingUp, path: "/plans" },
+  { labelKey: "nav.deposit", icon: ArrowDownLeft, path: "/deposit", highlight: true },
+  { labelKey: "nav.withdraw", icon: ArrowUpRight, path: "/withdraw" },
   { labelKey: "nav.transactions", icon: History, path: "/transactions" },
   { labelKey: "nav.wallets", icon: Wallet, path: "/wallets" },
   { labelKey: "nav.kycVerification", icon: FileCheck, path: "/kyc" },
@@ -32,8 +36,14 @@ const navKeys = [
   { labelKey: "nav.settings", icon: Settings, path: "/settings" },
 ];
 
-// Items shown in mobile bottom nav (up to 5 — rest are accessible via Cmd+K)
-const mobileNavKeys = navKeys.slice(0, 5);
+// Mobile bottom nav: the 5 highest-priority items
+const mobileNavKeys = [
+  navKeys[0], // Dashboard
+  navKeys[1], // Investment Plans
+  navKeys[2], // Deposit
+  navKeys[4], // Transactions
+  navKeys[8], // Settings
+];
 
 const AppLayout = ({ children }: { children: ReactNode }) => {
   const { user, signOut } = useAuth();
@@ -105,8 +115,10 @@ const AppLayout = ({ children }: { children: ReactNode }) => {
                 key={item.path}
                 to={item.path}
                 className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-body font-medium transition-all ${isActive
-                  ? "bg-accent-dim text-primary"
-                  : "text-muted-foreground hover:text-foreground hover:bg-secondary"
+                    ? "bg-accent-dim text-primary"
+                    : (item as any).highlight
+                      ? "text-primary bg-primary/10 hover:bg-primary/20"
+                      : "text-muted-foreground hover:text-foreground hover:bg-secondary"
                   }`}
               >
                 <item.icon size={18} />

@@ -105,7 +105,12 @@
     @apply bg-background text-foreground font-body antialiased;
   }
 
-  h1, h2, h3, h4, h5, h6 {
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
     font-family: 'Syne', sans-serif;
   }
 }
@@ -130,38 +135,81 @@
 
 /* Animations */
 @keyframes float {
-  0%, 100% { transform: translateY(0px) rotate(0deg); }
-  50% { transform: translateY(-14px) rotate(2deg); }
+
+  0%,
+  100% {
+    transform: translateY(0px) rotate(0deg);
+  }
+
+  50% {
+    transform: translateY(-14px) rotate(2deg);
+  }
 }
 
 @keyframes float-reverse {
-  0%, 100% { transform: translateY(0px) rotate(0deg); }
-  50% { transform: translateY(-10px) rotate(-2deg); }
+
+  0%,
+  100% {
+    transform: translateY(0px) rotate(0deg);
+  }
+
+  50% {
+    transform: translateY(-10px) rotate(-2deg);
+  }
 }
 
 @keyframes fade-up {
-  from { opacity: 0; transform: translateY(20px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @keyframes ticker-scroll {
-  from { transform: translateX(0); }
-  to { transform: translateX(-50%); }
+  from {
+    transform: translateX(0);
+  }
+
+  to {
+    transform: translateX(-50%);
+  }
 }
 
 @keyframes flash-green {
-  0% { color: hsl(130 100% 65%); }
-  100% { color: inherit; }
+  0% {
+    color: hsl(130 100% 65%);
+  }
+
+  100% {
+    color: inherit;
+  }
 }
 
 @keyframes flash-red {
-  0% { color: hsl(0 84% 60%); }
-  100% { color: inherit; }
+  0% {
+    color: hsl(0 84% 60%);
+  }
+
+  100% {
+    color: inherit;
+  }
 }
 
 @keyframes pulse-glow {
-  0%, 100% { opacity: 0.6; }
-  50% { opacity: 1; }
+
+  0%,
+  100% {
+    opacity: 0.6;
+  }
+
+  50% {
+    opacity: 1;
+  }
 }
 
 .animate-float {
@@ -184,8 +232,13 @@
   animation: pulse-glow 2s ease-in-out infinite;
 }
 
-.price-up { animation: flash-green 0.6s ease; }
-.price-down { animation: flash-red 0.6s ease; }
+.price-up {
+  animation: flash-green 0.6s ease;
+}
+
+.price-down {
+  animation: flash-red 0.6s ease;
+}
 
 /* Glow effects */
 .glow-accent {
@@ -193,24 +246,38 @@
 }
 
 .shadow-card {
-  box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 0 0 1px hsl(var(--border));
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12), 0 0 0 1px hsl(var(--border));
 }
 
 .dark .shadow-card {
-  box-shadow: 0 1px 3px rgba(0,0,0,0.6), 0 0 0 1px hsl(var(--border));
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.6), 0 0 0 1px hsl(var(--border));
 }
 
 /* ── Tidio Chat Widget Overrides ──────────────────────────────────────── */
-/* We can only override the outer wrapper (not the iframe internals)      */
+/* Prevent the widget from causing horizontal page overflow on mobile     */
+
+body,
+#root {
+  overflow-x: hidden;
+  max-width: 100vw;
+}
 
 #tidio-chat {
-  /* Move up from the bottom edge so it clears mobile nav bars */
   bottom: 20px !important;
   right: 20px !important;
+  max-width: calc(100vw - 40px) !important;
 }
 
 #tidio-chat iframe {
-  /* Subtle glow matching Montera's green accent on the launcher button */
   filter: drop-shadow(0 4px 24px hsl(130 100% 65% / 0.25)) !important;
   border-radius: 50% !important;
+  max-width: calc(100vw - 40px) !important;
+}
+
+/* On mobile — push above the fixed bottom nav (80px height) */
+@media (max-width: 1024px) {
+  #tidio-chat {
+    bottom: 85px !important;
+    right: 12px !important;
+  }
 }

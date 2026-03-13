@@ -1,6 +1,6 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowDownLeft, Copy, Check, AlertCircle, Info, ArrowRight, Upload, ImageIcon, CheckCircle2 } from "lucide-react";
+import { ArrowDownLeft, Copy, Check, AlertCircle, Info, ArrowRight, Upload, ImageIcon, CheckCircle2, TrendingUp, ChevronRight } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -34,6 +34,15 @@ const Deposit = () => {
   const [uploadingReceipt, setUploadingReceipt] = useState(false);
   const [receiptUploaded, setReceiptUploaded] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [plans, setPlans] = useState<any[]>([]);
+
+  useEffect(() => {
+    supabase.from("investment_plans")
+      .select("id, name, min_investment, expected_return_min, expected_return_max, duration_days, risk_level")
+      .eq("is_active", true)
+      .order("min_investment")
+      .then(({ data }) => { if (data) setPlans(data); });
+  }, []);
 
   const platformAddress = PLATFORM_DEPOSIT_ADDRESSES[selectedChain.id] || "Address not configured";
 
@@ -223,6 +232,56 @@ const Deposit = () => {
               >
                 Continue <ArrowRight size={16} />
               </Button>
+
+              {/* ── Browse Investment Plans ────────────── */}
+              {plans.length > 0 && (
+                <div className="mt-2">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <TrendingUp size={14} className="text-primary" />
+                      <span className="font-body text-sm font-medium text-foreground">Available Investment Plans</span>
+                    </div>
+                    <button onClick={() => navigate("/plans")} className="font-body text-xs text-primary hover:underline flex items-center gap-1">
+                      View all <ChevronRight size={11} />
+                    </button>
+                  </div>
+                  <div className="space-y-2">
+                    {plans.map((plan) => {
+                      const riskColors: Record<string, string> = {
+                        conservative: "text-blue-400 bg-blue-400/10",
+                        moderate: "text-primary bg-accent-dim",
+                        growth: "text-amber-400 bg-amber-400/10",
+                        aggressive: "text-destructive bg-destructive/10",
+                      };
+                      return (
+                        <button
+                          key={plan.id}
+                          onClick={() => navigate("/plans")}
+                          className="w-full bg-card border border-border hover:border-primary/40 rounded-lg px-4 py-3 flex items-center justify-between gap-4 transition-all group text-left"
+                        >
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-0.5">
+                              <span className="font-body text-sm font-medium text-foreground">{plan.name}</span>
+                              <span className={`font-mono text-[10px] px-1.5 py-0.5 rounded-pill capitalize ${riskColors[plan.risk_level] || riskColors.moderate}`}>
+                                {plan.risk_level}
+                              </span>
+                            </div>
+                            <span className="font-mono text-xs text-muted-foreground">Min ${plan.min_investment.toLocaleString()} · {plan.duration_days}d</span>
+                          </div>
+                          <div className="text-right flex-shrink-0">
+                            <span className="font-mono text-sm font-bold text-primary">{plan.expected_return_min}–{plan.expected_return_max}%</span>
+                            <p className="font-body text-[10px] text-muted-foreground">return</p>
+                          </div>
+                          <ChevronRight size={14} className="text-muted-foreground group-hover:text-primary transition-colors flex-shrink-0" />
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <p className="font-body text-xs text-muted-foreground text-center mt-3">
+                    Deposit funds first, then invest in any plan above
+                  </p>
+                </div>
+              )}
             </motion.div>
           )}
 

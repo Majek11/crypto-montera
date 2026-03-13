@@ -25,6 +25,8 @@
   "nav": {
     "dashboard": "Dashboard",
     "investmentPlans": "Investment Plans",
+    "deposit": "Deposit",
+    "withdraw": "Withdraw",
     "transactions": "Transactions",
     "wallets": "Wallets",
     "kycVerification": "KYC Verification",
