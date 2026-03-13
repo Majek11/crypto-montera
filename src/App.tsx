@@ -39,6 +39,7 @@ const AdminPlans = lazy(() => import("./pages/admin/AdminPlans"));
 const AdminTransactions = lazy(() => import("./pages/admin/AdminTransactions"));
 const AdminInvestments = lazy(() => import("./pages/admin/AdminInvestments"));
 const AdminBonus = lazy(() => import("./pages/admin/AdminBonus"));
+const AdminReferrals = lazy(() => import("./pages/admin/AdminReferrals"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 // ─── Query client ─────────────────────────────────────────────────────────────
@@ -103,6 +104,7 @@ const App = () => (
                     <Route path="/admin/plans" element={<AdminRoute><AdminPlans /></AdminRoute>} />
                     <Route path="/admin/investments" element={<AdminRoute><AdminInvestments /></AdminRoute>} />
                     <Route path="/admin/bonus" element={<AdminRoute><AdminBonus /></AdminRoute>} />
+                    <Route path="/admin/referrals" element={<AdminRoute><AdminReferrals /></AdminRoute>} />
 
                     <Route path="*" element={<NotFound />} />
                   </Routes>

@@ -2,6 +2,7 @@ import Navbar from "@/components/layout/Navbar";
 import TickerBar from "@/components/layout/TickerBar";
 import HeroSection from "@/components/features/HeroSection";
 import StatsBar from "@/components/features/StatsBar";
+import LiveActivitySection from "@/components/features/LiveActivitySection";
 import TrustedCompanies from "@/components/features/TrustedCompanies";
 import AboutSection from "@/components/features/AboutSection";
 import FeaturesGrid from "@/components/features/FeaturesGrid";
@@ -25,6 +26,7 @@ const Index = () => {
         <TickerBar />
         <HeroSection />
         <StatsBar />
+        <LiveActivitySection />
         <TrustedCompanies />
         <AboutSection />
         <FeaturesGrid />

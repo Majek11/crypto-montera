@@ -13,6 +13,7 @@ import {
   CreditCard,
   Gift,
   TrendingUp,
+  GitBranch,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -21,6 +22,7 @@ const adminNav = [
   { label: "Users", icon: Users, path: "/admin/users" },
   { label: "Transactions", icon: CreditCard, path: "/admin/transactions" },
   { label: "Investments", icon: TrendingUp, path: "/admin/investments" },
+  { label: "Referrals", icon: GitBranch, path: "/admin/referrals" },
   { label: "KYC Review", icon: ShieldCheck, path: "/admin/kyc" },
   { label: "Bonuses", icon: Gift, path: "/admin/bonus" },
   { label: "Analytics", icon: BarChart3, path: "/admin/analytics" },

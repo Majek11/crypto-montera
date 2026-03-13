@@ -1,13 +1,14 @@
-import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Eye, EyeOff, ArrowUpRight } from "lucide-react";
+import { Eye, EyeOff, ArrowUpRight, Gift } from "lucide-react";
 import { z } from "zod";
 import SEO from "@/components/SEO";
+import { supabase } from "@/integrations/supabase/client";
 
 const signupSchema = z.object({
   displayName: z.string().trim().min(2, "Name must be at least 2 characters").max(50),
@@ -18,11 +19,28 @@ const signupSchema = z.object({
 const Signup = () => {
   const { signUp } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const refCode = searchParams.get("ref"); // capture ?ref=CODE from URL
+
   const [displayName, setDisplayName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [referrerName, setReferrerName] = useState<string | null>(null);
+
+  // Look up who owns this referral code so we can show their name
+  useEffect(() => {
+    if (!refCode) return;
+    supabase
+      .from("profiles")
+      .select("display_name")
+      .eq("referral_code", refCode)
+      .single()
+      .then(({ data }) => {
+        setReferrerName(data?.display_name || "A Montera member");
+      });
+  }, [refCode]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -33,13 +51,44 @@ const Signup = () => {
     }
     setLoading(true);
     const { error } = await signUp(email, password, displayName);
-    setLoading(false);
     if (error) {
       toast.error(error.message);
-    } else {
-      toast.success("Account created! Check your email to verify.");
-      navigate("/login");
+      setLoading(false);
+      return;
     }
+
+    // If referred, save the referral after account is created
+    if (refCode) {
+      try {
+        // Find the referrer
+        const { data: referrer } = await supabase
+          .from("profiles")
+          .select("user_id")
+          .eq("referral_code", refCode)
+          .single();
+
+        if (referrer) {
+          // Get the newly created user
+          const { data: { user: newUser } } = await supabase.auth.getUser();
+          if (newUser) {
+            // Save the referral record
+            await supabase.from("referrals").insert({
+              referrer_id: referrer.user_id,
+              referred_id: newUser.id,
+              status: "pending",
+              referral_code: refCode,
+            });
+          }
+        }
+      } catch (e) {
+        // Referral save failure shouldn't block signup
+        console.warn("Referral save failed:", e);
+      }
+    }
+
+    setLoading(false);
+    toast.success("Account created! Check your email to verify.");
+    navigate("/login");
   };
 
   return (
@@ -78,6 +127,21 @@ const Signup = () => {
             <span className="font-heading font-bold text-lg text-foreground">Montera</span>
           </div>
 
+          {/* Referral banner */}
+          {refCode && (
+            <div className="flex items-center gap-3 bg-accent-dim border border-primary/20 rounded-xl px-4 py-3 mb-6">
+              <Gift size={16} className="text-primary flex-shrink-0" />
+              <div>
+                <p className="font-body text-sm font-medium text-foreground">
+                  {referrerName ? `${referrerName} invited you!` : "You were referred!"}
+                </p>
+                <p className="font-body text-xs text-muted-foreground">
+                  You'll both receive a bonus reward after your first deposit 🎉
+                </p>
+              </div>
+            </div>
+          )}
+
           <h2 className="font-heading font-bold text-2xl text-foreground mb-1">Create your account</h2>
           <p className="font-body text-sm text-muted-foreground mb-8">
             Get started in under 60 seconds
@@ -86,58 +150,30 @@ const Signup = () => {
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
               <Label htmlFor="name" className="font-body text-sm text-muted-foreground">Full Name</Label>
-              <Input
-                id="name"
-                type="text"
-                value={displayName}
-                onChange={(e) => setDisplayName(e.target.value)}
-                placeholder="John Doe"
-                className="mt-1.5 bg-input border-border text-foreground placeholder:text-muted-foreground"
-                required
-              />
+              <Input id="name" type="text" value={displayName} onChange={(e) => setDisplayName(e.target.value)}
+                placeholder="John Doe" className="mt-1.5 bg-input border-border text-foreground placeholder:text-muted-foreground" required />
             </div>
 
             <div>
               <Label htmlFor="email" className="font-body text-sm text-muted-foreground">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@example.com"
-                className="mt-1.5 bg-input border-border text-foreground placeholder:text-muted-foreground"
-                required
-              />
+              <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)}
+                placeholder="you@example.com" className="mt-1.5 bg-input border-border text-foreground placeholder:text-muted-foreground" required />
             </div>
 
             <div>
               <Label htmlFor="password" className="font-body text-sm text-muted-foreground">Password</Label>
               <div className="relative mt-1.5">
-                <Input
-                  id="password"
-                  type={showPassword ? "text" : "password"}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Min. 8 characters"
-                  className="bg-input border-border text-foreground placeholder:text-muted-foreground pr-10"
-                  required
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                >
+                <Input id="password" type={showPassword ? "text" : "password"} value={password}
+                  onChange={(e) => setPassword(e.target.value)} placeholder="Min. 8 characters"
+                  className="bg-input border-border text-foreground placeholder:text-muted-foreground pr-10" required />
+                <button type="button" onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
                   {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
               </div>
             </div>
 
-            <Button
-              type="submit"
-              variant="hero"
-              className="w-full py-6 text-base"
-              disabled={loading}
-            >
+            <Button type="submit" variant="hero" className="w-full py-6 text-base" disabled={loading}>
               {loading ? (
                 <div className="w-5 h-5 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin" />
               ) : (
@@ -148,9 +184,7 @@ const Signup = () => {
 
           <p className="font-body text-sm text-muted-foreground text-center mt-6">
             Already have an account?{" "}
-            <Link to="/login" className="text-primary hover:underline font-medium">
-              Sign in
-            </Link>
+            <Link to="/login" className="text-primary hover:underline font-medium">Sign in</Link>
           </p>
         </div>
       </div>
