@@ -253,8 +253,7 @@
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.6), 0 0 0 1px hsl(var(--border));
 }
 
-/* ── Tidio Chat Widget Overrides ──────────────────────────────────────── */
-/* Prevent the widget from causing horizontal page overflow on mobile     */
+/* ── Global overflow guard (prevents any widget causing horizontal scroll) */
 
 body,
 #root {
@@ -262,22 +261,26 @@ body,
   max-width: 100vw;
 }
 
-#tidio-chat {
-  bottom: 20px !important;
-  right: 20px !important;
+/* ── Tawk.to Chat Widget Overrides ────────────────────────────────────── */
+/* Target the injected iframe via its stable title attribute               */
+
+iframe[title*="chat" i],
+iframe[src*="tawk.to"] {
   max-width: calc(100vw - 40px) !important;
 }
 
-#tidio-chat iframe {
+/* Accent glow on the chat bubble to match the site's green palette       */
+body>div[id^="__tawk"] iframe,
+body>div[style*="tawk"] iframe {
   filter: drop-shadow(0 4px 24px hsl(130 100% 65% / 0.25)) !important;
-  border-radius: 50% !important;
-  max-width: calc(100vw - 40px) !important;
 }
 
-/* On mobile — push above the fixed bottom nav (80px height) */
+/* On mobile/tablet — widget is already offset via Tawk_API.customStyle   */
+/* but this adds a safe CSS fallback for the iframe wrapper itself         */
 @media (max-width: 1024px) {
-  #tidio-chat {
-    bottom: 85px !important;
-    right: 12px !important;
+
+  iframe[title*="chat" i],
+  iframe[src*="tawk.to"] {
+    max-width: calc(100vw - 24px) !important;
   }
 }

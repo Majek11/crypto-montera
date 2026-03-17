@@ -40,6 +40,7 @@ const AdminTransactions = lazy(() => import("./pages/admin/AdminTransactions"));
 const AdminInvestments = lazy(() => import("./pages/admin/AdminInvestments"));
 const AdminBonus = lazy(() => import("./pages/admin/AdminBonus"));
 const AdminReferrals = lazy(() => import("./pages/admin/AdminReferrals"));
+const AdminWalletSettings = lazy(() => import("./pages/admin/AdminWalletSettings"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 // ─── Query client ─────────────────────────────────────────────────────────────
@@ -105,6 +106,7 @@ const App = () => (
                     <Route path="/admin/investments" element={<AdminRoute><AdminInvestments /></AdminRoute>} />
                     <Route path="/admin/bonus" element={<AdminRoute><AdminBonus /></AdminRoute>} />
                     <Route path="/admin/referrals" element={<AdminRoute><AdminReferrals /></AdminRoute>} />
+                    <Route path="/admin/wallet-settings" element={<AdminRoute><AdminWalletSettings /></AdminRoute>} />
 
                     <Route path="*" element={<NotFound />} />
                   </Routes>

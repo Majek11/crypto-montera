@@ -65,8 +65,29 @@
   <div id="root"></div>
   <script type="module" src="/src/main.tsx"></script>
 
-  <!-- ── Tidio Live Chat ────────────────────────────────────────────── -->
-  <script src="//code.tidio.co/1afasgj1hpwgb2mm5wzdejd6enfd7x6x.js" async></script>
+  <!-- ── Tawk.to Live Chat ───────────────────────────────────────────── -->
+  <!-- Position config: desktop 20 px inset; mobile/tablet 85 px above bottom nav -->
+  <script type="text/javascript">
+    var Tawk_API = Tawk_API || {};
+    Tawk_API.customStyle = {
+      visibility: {
+        desktop: { position: 'br', xOffset: 20, yOffset: 20 },
+        tablet: { position: 'br', xOffset: 12, yOffset: 85 },
+        mobile: { position: 'br', xOffset: 12, yOffset: 85 }
+      }
+    };
+  </script>
+  <script type="text/javascript">
+    var Tawk_API = Tawk_API || {}, Tawk_LoadStart = new Date();
+    (function () {
+      var s1 = document.createElement("script"), s0 = document.getElementsByTagName("script")[0];
+      s1.async = true;
+      s1.src = 'https://embed.tawk.to/69b8a2d502cee51c38268239/1jjsjo583';
+      s1.charset = 'UTF-8';
+      s1.setAttribute('crossorigin', '*');
+      s0.parentNode.insertBefore(s1, s0);
+    })();
+  </script>
 
 </body>
 

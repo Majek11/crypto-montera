@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   Shield, TrendingUp, Zap, Rocket, ArrowUpRight, Clock,
   DollarSign, CheckCircle, BarChart3, CalendarClock, Target,
-  Wallet, AlertCircle, X, ArrowRight
+  Wallet, AlertCircle, X, ArrowRight, Mail
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -15,6 +15,7 @@ import type { InvestmentPlan, Investment } from "@/types";
 import SEO from "@/components/SEO";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
+import { ENTERPRISE_THRESHOLD, ENTERPRISE_EMAIL } from "@/lib/constants";
 
 const riskIcons: Record<string, typeof Shield> = {
   conservative: Shield,
@@ -346,6 +347,27 @@ const Plans = () => {
           <Button variant="outline" className="w-full py-5 cursor-default" disabled>
             <CheckCircle size={14} className="mr-2 text-primary" /> Active Investment
           </Button>
+        ) : plan.min_investment >= ENTERPRISE_THRESHOLD ? (
+          /* ── Enterprise CTA ── */
+          <div className="space-y-3">
+            <div className="bg-accent-dim/40 border border-primary/20 rounded-lg px-4 py-3 text-center">
+              <p className="font-body text-xs text-muted-foreground mb-1">
+                For investments of{" "}
+                <span className="text-foreground font-semibold">
+                  ${plan.min_investment.toLocaleString()}+
+                </span>
+                , please contact our team directly.
+              </p>
+              <p className="font-mono text-xs text-primary">{ENTERPRISE_EMAIL}</p>
+            </div>
+            <Button
+              variant="hero"
+              className="w-full py-5 gap-2"
+              onClick={() => window.location.href = `mailto:${ENTERPRISE_EMAIL}?subject=Enterprise Investment Enquiry`}
+            >
+              <Mail size={14} /> Contact Investment Team
+            </Button>
+          </div>
         ) : (
           <div className="space-y-2">
             <Button variant="hero" className="w-full py-5" onClick={() => handleInvestClick(plan)}>

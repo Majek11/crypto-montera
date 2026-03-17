@@ -35,16 +35,33 @@ const Deposit = () => {
   const [receiptUploaded, setReceiptUploaded] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [plans, setPlans] = useState<any[]>([]);
+  // Live wallet addresses — fetched from Supabase platform_settings, falls back to constants
+  const [liveAddresses, setLiveAddresses] = useState<Record<string, string>>(PLATFORM_DEPOSIT_ADDRESSES);
 
   useEffect(() => {
+    // Fetch investment plans
     supabase.from("investment_plans")
       .select("id, name, min_investment, expected_return_min, expected_return_max, duration_days, risk_level")
       .eq("is_active", true)
       .order("min_investment")
       .then(({ data }) => { if (data) setPlans(data); });
+
+    // Fetch live wallet addresses from platform_settings (admin-editable)
+    (supabase as any)
+      .from("platform_settings")
+      .select("key, value")
+      .like("key", "wallet_%")
+      .then(({ data }: { data: Array<{ key: string; value: string }> | null }) => {
+        if (data && data.length > 0) {
+          const map: Record<string, string> = {};
+          data.forEach((row) => { map[row.key.replace("wallet_", "")] = row.value; });
+          setLiveAddresses((prev) => ({ ...prev, ...map }));
+        }
+      })
+      .catch(() => { /* table may not exist yet — constants fallback stays */ });
   }, []);
 
-  const platformAddress = PLATFORM_DEPOSIT_ADDRESSES[selectedChain.id] || "Address not configured";
+  const platformAddress = liveAddresses[selectedChain.id] || "Address not configured";
 
   const copyAddress = () => {
     navigator.clipboard.writeText(platformAddress);

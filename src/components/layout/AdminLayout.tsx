@@ -14,6 +14,7 @@ import {
   Gift,
   TrendingUp,
   GitBranch,
+  Wallet,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -27,6 +28,7 @@ const adminNav = [
   { label: "Bonuses", icon: Gift, path: "/admin/bonus" },
   { label: "Analytics", icon: BarChart3, path: "/admin/analytics" },
   { label: "Plans", icon: Briefcase, path: "/admin/plans" },
+  { label: "Wallet Settings", icon: Wallet, path: "/admin/wallet-settings" },
 ];
 
 const AdminLayout = ({ children }: { children: ReactNode }) => {
