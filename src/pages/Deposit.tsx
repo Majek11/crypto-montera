@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowDownLeft, Copy, Check, AlertCircle, Info, ArrowRight, Upload, ImageIcon, CheckCircle2, TrendingUp, ChevronRight } from "lucide-react";
+import { ArrowDownLeft, Copy, Check, AlertCircle, Info, ArrowRight, Upload, ImageIcon, CheckCircle2, TrendingUp, Mail, Shield, TriangleAlert } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -11,12 +11,74 @@ import { toast } from "sonner";
 import AppLayout from "@/components/layout/AppLayout";
 import { useNavigate } from "react-router-dom";
 import { z } from "zod";
-import { CHAINS, CURRENCIES, PLATFORM_DEPOSIT_ADDRESSES } from "@/lib/constants";
+import { CHAINS, CURRENCIES, PLATFORM_DEPOSIT_ADDRESSES, ENTERPRISE_THRESHOLD, ENTERPRISE_EMAIL } from "@/lib/constants";
 import SEO from "@/components/SEO";
 
 const depositSchema = z.object({
   amount: z.number().min(10, "Minimum deposit is $10").max(1000000, "Maximum deposit is $1,000,000"),
 });
+
+// ─── Per-network safety warnings ─────────────────────────────────────────────
+type WarnLevel = "info" | "caution" | "danger";
+interface ChainWarning { level: WarnLevel; title: string; lines: string[] }
+
+const CHAIN_WARNINGS: Record<string, ChainWarning> = {
+  ethereum: {
+    level: "info",
+    title: "Ethereum (ERC-20) network only",
+    lines: [
+      "Only send ETH or ERC-20 tokens (USDC, DAI…) to this address.",
+      "Do NOT send BEP-20, TRC-20 or any other network's tokens — they will be lost permanently.",
+    ],
+  },
+  bitcoin: {
+    level: "info",
+    title: "Bitcoin network only",
+    lines: [
+      "Only send native BTC to this address.",
+      "This address does NOT accept ETH, USDT, or any other asset — Bitcoin only.",
+    ],
+  },
+  usdt_trc20: {
+    level: "danger",
+    title: "⚠️ TRC-20 (Tron) USDT ONLY — read carefully",
+    lines: [
+      "This address ONLY accepts USDT sent via the TRC-20 (Tron) network.",
+      "Do NOT send ERC-20 USDT (Ethereum) or BEP-20 USDT (BSC) here.",
+      "Sending the wrong USDT variant will result in permanent, unrecoverable loss of funds.",
+    ],
+  },
+  solana: {
+    level: "info",
+    title: "Solana network only",
+    lines: [
+      "Only send SOL or Solana SPL tokens to this address.",
+      "Do NOT send ETH, BNB, or tokens from any other network.",
+    ],
+  },
+  bsc: {
+    level: "caution",
+    title: "BNB Smart Chain (BEP-20) — not Ethereum",
+    lines: [
+      "Only send BNB or BEP-20 tokens to this address.",
+      "BSC and Ethereum addresses look identical but are different networks.",
+      "Sending ERC-20 tokens to this BSC address will result in permanent loss.",
+    ],
+  },
+};
+
+const warnStyles: Record<WarnLevel, { wrap: string; icon: string; dot: string }> = {
+  info: { wrap: "bg-accent-dim/30 border-primary/15", icon: "text-primary", dot: "bg-primary" },
+  caution: { wrap: "bg-amber-400/10 border-amber-400/25", icon: "text-amber-400", dot: "bg-amber-400" },
+  danger: { wrap: "bg-destructive/10 border-destructive/30", icon: "text-destructive", dot: "bg-destructive" },
+};
+
+const riskColors: Record<string, string> = {
+  conservative: "text-blue-400 bg-blue-400/10",
+  moderate: "text-primary bg-accent-dim",
+  growth: "text-amber-400 bg-amber-400/10",
+  aggressive: "text-destructive bg-destructive/10",
+};
 
 const Deposit = () => {
   const { user } = useAuth();
@@ -35,6 +97,7 @@ const Deposit = () => {
   const [receiptUploaded, setReceiptUploaded] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [plans, setPlans] = useState<any[]>([]);
+  const [selectedPlanId, setSelectedPlanId] = useState<string>("");
   // Live wallet addresses — fetched from Supabase platform_settings, falls back to constants
   const [liveAddresses, setLiveAddresses] = useState<Record<string, string>>(PLATFORM_DEPOSIT_ADDRESSES);
 
@@ -196,12 +259,29 @@ const Deposit = () => {
                       {copied ? <Check size={14} className="text-primary" /> : <Copy size={14} />}
                     </button>
                   </div>
-                  <div className="w-full bg-accent-dim/30 border border-primary/15 rounded-lg px-4 py-3 flex gap-2">
-                    <Info size={14} className="text-primary flex-shrink-0 mt-0.5" />
-                    <p className="font-body text-xs text-muted-foreground">
-                      Only send <span className="text-primary font-medium">{selectedCurrency}</span> on the <span className="text-primary font-medium">{selectedChain.name}</span> network to this address. Sending other assets may result in permanent loss.
-                    </p>
-                  </div>
+                  {/* Dynamic chain-specific warning */}
+                  {(() => {
+                    const warn = CHAIN_WARNINGS[selectedChain.id];
+                    if (!warn) return null;
+                    const s = warnStyles[warn.level];
+                    const WarnIcon = warn.level === "danger" ? TriangleAlert : warn.level === "caution" ? TriangleAlert : Info;
+                    return (
+                      <div className={`w-full border rounded-lg px-4 py-3 flex gap-2.5 ${s.wrap}`}>
+                        <WarnIcon size={15} className={`${s.icon} flex-shrink-0 mt-0.5`} />
+                        <div>
+                          <p className={`font-body text-xs font-semibold mb-1 ${s.icon}`}>{warn.title}</p>
+                          <ul className="space-y-0.5">
+                            {warn.lines.map((line, i) => (
+                              <li key={i} className="font-body text-xs text-muted-foreground flex gap-1.5">
+                                <span className={`w-1 h-1 rounded-full ${s.dot} shrink-0 mt-1.5`} />
+                                {line}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      </div>
+                    );
+                  })()}
                 </div>
               </div>
 
@@ -250,53 +330,90 @@ const Deposit = () => {
                 Continue <ArrowRight size={16} />
               </Button>
 
-              {/* ── Browse Investment Plans ────────────── */}
+              {/* ── Investment Plan Selector ────────────── */}
               {plans.length > 0 && (
-                <div className="mt-2">
+                <div className="bg-card border border-border rounded-lg p-5">
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-2">
                       <TrendingUp size={14} className="text-primary" />
-                      <span className="font-body text-sm font-medium text-foreground">Available Investment Plans</span>
+                      <Label className="font-body text-sm text-muted-foreground">4. Choose an Investment Plan <span className="text-muted-foreground/50">(optional)</span></Label>
                     </div>
-                    <button onClick={() => navigate("/plans")} className="font-body text-xs text-primary hover:underline flex items-center gap-1">
-                      View all <ChevronRight size={11} />
+                    <button onClick={() => navigate("/plans")} className="font-body text-xs text-primary hover:underline">
+                      View details →
                     </button>
                   </div>
-                  <div className="space-y-2">
-                    {plans.map((plan) => {
-                      const riskColors: Record<string, string> = {
-                        conservative: "text-blue-400 bg-blue-400/10",
-                        moderate: "text-primary bg-accent-dim",
-                        growth: "text-amber-400 bg-amber-400/10",
-                        aggressive: "text-destructive bg-destructive/10",
-                      };
-                      return (
-                        <button
-                          key={plan.id}
-                          onClick={() => navigate("/plans")}
-                          className="w-full bg-card border border-border hover:border-primary/40 rounded-lg px-4 py-3 flex items-center justify-between gap-4 transition-all group text-left"
-                        >
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 mb-0.5">
-                              <span className="font-body text-sm font-medium text-foreground">{plan.name}</span>
-                              <span className={`font-mono text-[10px] px-1.5 py-0.5 rounded-pill capitalize ${riskColors[plan.risk_level] || riskColors.moderate}`}>
-                                {plan.risk_level}
-                              </span>
-                            </div>
-                            <span className="font-mono text-xs text-muted-foreground">Min ${plan.min_investment.toLocaleString()} · {plan.duration_days}d</span>
+
+                  {/* Dropdown */}
+                  <select
+                    value={selectedPlanId}
+                    onChange={(e) => setSelectedPlanId(e.target.value)}
+                    className="w-full h-10 px-3 rounded-md bg-input border border-border text-foreground text-sm font-body focus:outline-none focus:ring-2 focus:ring-ring mb-3"
+                  >
+                    <option value="">— Select a plan to see details —</option>
+                    {plans.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.name} · Min ${p.min_investment.toLocaleString()}{p.min_investment >= ENTERPRISE_THRESHOLD ? "+" : ""} · {p.min_investment >= ENTERPRISE_THRESHOLD ? "Contact Us" : `${p.expected_return_min}–${p.expected_return_max}% return`}
+                      </option>
+                    ))}
+                  </select>
+
+                  {/* Plan preview card */}
+                  {(() => {
+                    const plan = plans.find((p) => p.id === selectedPlanId);
+                    if (!plan) return (
+                      <p className="font-body text-xs text-muted-foreground text-center py-2">
+                        Deposit funds first, then select a plan to invest.
+                      </p>
+                    );
+                    const isEnterprise = plan.min_investment >= ENTERPRISE_THRESHOLD;
+                    const colorClass = riskColors[plan.risk_level] || riskColors.moderate;
+                    return (
+                      <motion.div
+                        key={plan.id}
+                        initial={{ opacity: 0, y: 6 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="bg-secondary rounded-lg p-4 border border-border"
+                      >
+                        <div className="flex items-center gap-2 mb-3">
+                          <Shield size={14} className="text-primary" />
+                          <span className="font-heading font-bold text-sm text-foreground">{plan.name}</span>
+                          <span className={`font-mono text-[10px] px-1.5 py-0.5 rounded-pill capitalize ml-auto ${colorClass}`}>
+                            {plan.risk_level}
+                          </span>
+                        </div>
+                        <div className="grid grid-cols-3 gap-3 text-center">
+                          <div>
+                            <p className="font-mono text-sm font-bold text-foreground">
+                              ${plan.min_investment.toLocaleString()}{isEnterprise ? "+" : ""}
+                            </p>
+                            <p className="font-body text-[10px] text-muted-foreground">Min. Invest</p>
                           </div>
-                          <div className="text-right flex-shrink-0">
-                            <span className="font-mono text-sm font-bold text-primary">{plan.expected_return_min}–{plan.expected_return_max}%</span>
-                            <p className="font-body text-[10px] text-muted-foreground">return</p>
+                          <div>
+                            <p className="font-mono text-sm font-bold text-primary">
+                              {isEnterprise ? `${plan.expected_return_min}%+` : `${plan.expected_return_min}–${plan.expected_return_max}%`}
+                            </p>
+                            <p className="font-body text-[10px] text-muted-foreground">Return</p>
                           </div>
-                          <ChevronRight size={14} className="text-muted-foreground group-hover:text-primary transition-colors flex-shrink-0" />
-                        </button>
-                      );
-                    })}
-                  </div>
-                  <p className="font-body text-xs text-muted-foreground text-center mt-3">
-                    Deposit funds first, then invest in any plan above
-                  </p>
+                          <div>
+                            <p className="font-mono text-sm font-bold text-foreground">{plan.duration_days}d</p>
+                            <p className="font-body text-[10px] text-muted-foreground">Duration</p>
+                          </div>
+                        </div>
+                        {isEnterprise ? (
+                          <a
+                            href={`mailto:${ENTERPRISE_EMAIL}?subject=Enterprise Investment Enquiry`}
+                            className="mt-3 w-full flex items-center justify-center gap-2 py-2 rounded-lg bg-amber-400/10 border border-amber-400/30 font-body text-xs text-amber-400 hover:bg-amber-400/20 transition-colors"
+                          >
+                            <Mail size={12} /> Contact us at {ENTERPRISE_EMAIL}
+                          </a>
+                        ) : (
+                          <p className="font-body text-[10px] text-muted-foreground text-center mt-3">
+                            Complete your deposit above, then go to <button onClick={() => navigate("/plans")} className="text-primary underline">Investment Plans</button> to activate this plan.
+                          </p>
+                        )}
+                      </motion.div>
+                    );
+                  })()}
                 </div>
               )}
             </motion.div>
