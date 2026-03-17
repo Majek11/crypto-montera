@@ -321,22 +321,13 @@ const Deposit = () => {
                 </div>
               </div>
 
-              <Button
-                variant="hero"
-                className="w-full py-6 text-base gap-2"
-                onClick={handleContinue}
-                disabled={!amount}
-              >
-                Continue <ArrowRight size={16} />
-              </Button>
-
               {/* ── Investment Plan Selector ────────────── */}
               {plans.length > 0 && (
                 <div className="bg-card border border-border rounded-lg p-5">
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-2">
                       <TrendingUp size={14} className="text-primary" />
-                      <Label className="font-body text-sm text-muted-foreground">4. Choose an Investment Plan <span className="text-muted-foreground/50">(optional)</span></Label>
+                      <Label className="font-body text-sm text-muted-foreground">4. Choose an Investment Plan</Label>
                     </div>
                     <button onClick={() => navigate("/plans")} className="font-body text-xs text-primary hover:underline">
                       View details →
@@ -349,7 +340,7 @@ const Deposit = () => {
                     onChange={(e) => setSelectedPlanId(e.target.value)}
                     className="w-full h-10 px-3 rounded-md bg-input border border-border text-foreground text-sm font-body focus:outline-none focus:ring-2 focus:ring-ring mb-3"
                   >
-                    <option value="">— Select a plan to see details —</option>
+                    <option value="">— Select a plan —</option>
                     {plans.map((p) => (
                       <option key={p.id} value={p.id}>
                         {p.name} · Min ${p.min_investment.toLocaleString()}{p.min_investment >= ENTERPRISE_THRESHOLD ? "+" : ""} · {p.min_investment >= ENTERPRISE_THRESHOLD ? "Contact Us" : `${p.expected_return_min}–${p.expected_return_max}% return`}
@@ -362,7 +353,7 @@ const Deposit = () => {
                     const plan = plans.find((p) => p.id === selectedPlanId);
                     if (!plan) return (
                       <p className="font-body text-xs text-muted-foreground text-center py-2">
-                        Deposit funds first, then select a plan to invest.
+                        Select a plan above to see details.
                       </p>
                     );
                     const isEnterprise = plan.min_investment >= ENTERPRISE_THRESHOLD;
@@ -408,7 +399,7 @@ const Deposit = () => {
                           </a>
                         ) : (
                           <p className="font-body text-[10px] text-muted-foreground text-center mt-3">
-                            Complete your deposit above, then go to <button onClick={() => navigate("/plans")} className="text-primary underline">Investment Plans</button> to activate this plan.
+                            Complete your deposit, then go to <button onClick={() => navigate("/plans")} className="text-primary underline">Investment Plans</button> to activate this plan.
                           </p>
                         )}
                       </motion.div>
@@ -416,6 +407,16 @@ const Deposit = () => {
                   })()}
                 </div>
               )}
+
+              <Button
+                variant="hero"
+                className="w-full py-6 text-base gap-2"
+                onClick={handleContinue}
+                disabled={!amount}
+              >
+                Continue <ArrowRight size={16} />
+              </Button>
+
             </motion.div>
           )}
 
