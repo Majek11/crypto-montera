@@ -7,6 +7,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
 import { HelmetProvider } from "react-helmet-async";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { ImpersonationProvider } from "@/contexts/ImpersonationContext";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import AdminRoute from "@/components/auth/AdminRoute";
 import ErrorBoundary from "@/components/ErrorBoundary";
@@ -41,6 +42,7 @@ const AdminInvestments = lazy(() => import("./pages/admin/AdminInvestments"));
 const AdminBonus = lazy(() => import("./pages/admin/AdminBonus"));
 const AdminReferrals = lazy(() => import("./pages/admin/AdminReferrals"));
 const AdminWalletSettings = lazy(() => import("./pages/admin/AdminWalletSettings"));
+const AdminAnnouncements = lazy(() => import("./pages/admin/AdminAnnouncements"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 // ─── Query client ─────────────────────────────────────────────────────────────
@@ -75,43 +77,46 @@ const App = () => (
           <Sonner />
           <BrowserRouter>
             <AuthProvider>
-              <ErrorBoundary>
-                <Suspense fallback={<PageLoader />}>
-                  <Routes>
-                    <Route path="/" element={<Index />} />
-                    <Route path="/login" element={<Login />} />
-                    <Route path="/signup" element={<Signup />} />
-                    <Route path="/forgot-password" element={<ForgotPassword />} />
-                    <Route path="/reset-password" element={<ResetPassword />} />
+              <ImpersonationProvider>
+                <ErrorBoundary>
+                  <Suspense fallback={<PageLoader />}>
+                    <Routes>
+                      <Route path="/" element={<Index />} />
+                      <Route path="/login" element={<Login />} />
+                      <Route path="/signup" element={<Signup />} />
+                      <Route path="/forgot-password" element={<ForgotPassword />} />
+                      <Route path="/reset-password" element={<ResetPassword />} />
 
-                    {/* Protected user routes */}
-                    <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-                    <Route path="/plans" element={<ProtectedRoute><Plans /></ProtectedRoute>} />
-                    <Route path="/transactions" element={<ProtectedRoute><Transactions /></ProtectedRoute>} />
-                    <Route path="/transactions/:id" element={<ProtectedRoute><TransactionDetail /></ProtectedRoute>} />
-                    <Route path="/deposit" element={<ProtectedRoute><Deposit /></ProtectedRoute>} />
-                    <Route path="/withdraw" element={<ProtectedRoute><Withdraw /></ProtectedRoute>} />
-                    <Route path="/wallets" element={<ProtectedRoute><Wallets /></ProtectedRoute>} />
-                    <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
-                    <Route path="/kyc" element={<ProtectedRoute><KYCVerification /></ProtectedRoute>} />
-                    <Route path="/activity" element={<ProtectedRoute><ActivityLog /></ProtectedRoute>} />
+                      {/* Protected user routes */}
+                      <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+                      <Route path="/plans" element={<ProtectedRoute><Plans /></ProtectedRoute>} />
+                      <Route path="/transactions" element={<ProtectedRoute><Transactions /></ProtectedRoute>} />
+                      <Route path="/transactions/:id" element={<ProtectedRoute><TransactionDetail /></ProtectedRoute>} />
+                      <Route path="/deposit" element={<ProtectedRoute><Deposit /></ProtectedRoute>} />
+                      <Route path="/withdraw" element={<ProtectedRoute><Withdraw /></ProtectedRoute>} />
+                      <Route path="/wallets" element={<ProtectedRoute><Wallets /></ProtectedRoute>} />
+                      <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+                      <Route path="/kyc" element={<ProtectedRoute><KYCVerification /></ProtectedRoute>} />
+                      <Route path="/activity" element={<ProtectedRoute><ActivityLog /></ProtectedRoute>} />
 
-                    {/* Protected admin routes */}
-                    <Route path="/admin" element={<AdminRoute><AdminOverview /></AdminRoute>} />
-                    <Route path="/admin/users" element={<AdminRoute><AdminUsers /></AdminRoute>} />
-                    <Route path="/admin/kyc" element={<AdminRoute><AdminKYC /></AdminRoute>} />
-                    <Route path="/admin/transactions" element={<AdminRoute><AdminTransactions /></AdminRoute>} />
-                    <Route path="/admin/analytics" element={<AdminRoute><AdminAnalytics /></AdminRoute>} />
-                    <Route path="/admin/plans" element={<AdminRoute><AdminPlans /></AdminRoute>} />
-                    <Route path="/admin/investments" element={<AdminRoute><AdminInvestments /></AdminRoute>} />
-                    <Route path="/admin/bonus" element={<AdminRoute><AdminBonus /></AdminRoute>} />
-                    <Route path="/admin/referrals" element={<AdminRoute><AdminReferrals /></AdminRoute>} />
-                    <Route path="/admin/wallet-settings" element={<AdminRoute><AdminWalletSettings /></AdminRoute>} />
+                      {/* Protected admin routes */}
+                      <Route path="/admin" element={<AdminRoute><AdminOverview /></AdminRoute>} />
+                      <Route path="/admin/users" element={<AdminRoute><AdminUsers /></AdminRoute>} />
+                      <Route path="/admin/kyc" element={<AdminRoute><AdminKYC /></AdminRoute>} />
+                      <Route path="/admin/transactions" element={<AdminRoute><AdminTransactions /></AdminRoute>} />
+                      <Route path="/admin/analytics" element={<AdminRoute><AdminAnalytics /></AdminRoute>} />
+                      <Route path="/admin/plans" element={<AdminRoute><AdminPlans /></AdminRoute>} />
+                      <Route path="/admin/investments" element={<AdminRoute><AdminInvestments /></AdminRoute>} />
+                      <Route path="/admin/bonus" element={<AdminRoute><AdminBonus /></AdminRoute>} />
+                      <Route path="/admin/referrals" element={<AdminRoute><AdminReferrals /></AdminRoute>} />
+                      <Route path="/admin/wallet-settings" element={<AdminRoute><AdminWalletSettings /></AdminRoute>} />
+                      <Route path="/admin/announcements" element={<AdminRoute><AdminAnnouncements /></AdminRoute>} />
 
-                    <Route path="*" element={<NotFound />} />
-                  </Routes>
-                </Suspense>
-              </ErrorBoundary>
+                      <Route path="*" element={<NotFound />} />
+                    </Routes>
+                  </Suspense>
+                </ErrorBoundary>
+              </ImpersonationProvider>
             </AuthProvider>
           </BrowserRouter>
         </TooltipProvider>

@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react";
-import { motion } from "framer-motion";
-import { Search, MoreVertical, Ban, CheckCircle, Shield, Eye, UserX, UserCheck } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion";
+import { Search, MoreVertical, Ban, CheckCircle, Shield, Eye, UserX, UserCheck, Wallet, DollarSign, Loader2, LogIn } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import AdminLayout from "@/components/layout/AdminLayout";
+import { useImpersonation } from "@/contexts/ImpersonationContext";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -25,6 +27,8 @@ import { Textarea } from "@/components/ui/textarea";
 const statusFilters = ["All", "Active", "Suspended", "Banned"];
 
 const AdminUsers = () => {
+  const navigate = useNavigate();
+  const { startImpersonation, stopImpersonation } = useImpersonation();
   const [users, setUsers] = useState<any[]>([]);
   const [roles, setRoles] = useState<Record<string, string[]>>({});
   const [search, setSearch] = useState("");
@@ -37,6 +41,16 @@ const AdminUsers = () => {
   });
   const [adminNotes, setAdminNotes] = useState("");
   const [actionLoading, setActionLoading] = useState(false);
+
+  // Credit wallet state
+  const [creditDialog, setCreditDialog] = useState<{ open: boolean; user: any | null }>({
+    open: false, user: null,
+  });
+  const [creditAmount, setCreditAmount] = useState("");
+  const [creditNote, setCreditNote] = useState("");
+  const [creditSubmitting, setCreditSubmitting] = useState(false);
+  const [creditUserBalance, setCreditUserBalance] = useState<number | null>(null);
+  const [loadingCreditBalance, setLoadingCreditBalance] = useState(false);
 
   const fetchUsers = async () => {
     const { data: profiles } = await supabase.from("profiles").select("*").order("created_at", { ascending: false });
@@ -54,7 +68,87 @@ const AdminUsers = () => {
     setLoading(false);
   };
 
+  // Clear any active impersonation when admin returns to this page
+  useEffect(() => { stopImpersonation(); }, []);
+
   useEffect(() => { fetchUsers(); }, []);
+
+  const loginAsUser = (u: any) => {
+    startImpersonation({
+      user_id: u.user_id,
+      email: u.email,
+      display_name: u.display_name,
+      balance: Number(u.balance ?? 0),
+      status: u.status ?? "active",
+    });
+    navigate("/dashboard");
+  };
+
+  const openCreditDialog = async (user: any) => {
+    setCreditAmount("");
+    setCreditNote("");
+    setCreditUserBalance(null);
+    setCreditDialog({ open: true, user });
+    setLoadingCreditBalance(true);
+    // Fetch the latest balance from the profiles table directly
+    const { data } = await supabase
+      .from("profiles")
+      .select("balance")
+      .eq("user_id", user.user_id)
+      .single();
+    setCreditUserBalance(data ? Number(data.balance) : 0);
+    setLoadingCreditBalance(false);
+  };
+
+  const handleCreditWallet = async () => {
+    if (!creditDialog.user || !creditAmount || isNaN(Number(creditAmount)) || Number(creditAmount) <= 0) {
+      toast.error("Please enter a valid amount");
+      return;
+    }
+    setCreditSubmitting(true);
+    const amountNum = Number(creditAmount);
+    const description = creditNote.trim() || "💳 Admin Wallet Credit";
+
+    // Insert a completed deposit transaction — the DB trigger will update profiles.balance
+    const { error: txError } = await supabase.from("transactions").insert({
+      user_id: creditDialog.user.user_id,
+      type: "deposit",
+      amount: amountNum,
+      currency: "USD",
+      status: "completed",
+      description,
+      reference: `admin-credit-${Date.now()}`,
+    });
+
+    if (txError) {
+      toast.error(txError.message);
+      setCreditSubmitting(false);
+      return;
+    }
+
+    // Also directly update balance in case trigger is not yet applied
+    await supabase
+      .from("profiles")
+      .update({ balance: (creditUserBalance ?? 0) + amountNum })
+      .eq("user_id", creditDialog.user.user_id);
+
+    // Send in-app notification to the user
+    await supabase.from("notifications").insert({
+      user_id: creditDialog.user.user_id,
+      title: "💳 Wallet Credited",
+      message: `$${amountNum.toLocaleString("en-US", { minimumFractionDigits: 2 })} has been credited to your wallet.${creditNote.trim() ? ` Note: ${creditNote.trim()}` : ""
+        }`,
+      type: "success",
+    });
+
+    toast.success(
+      `$${amountNum.toLocaleString("en-US", { minimumFractionDigits: 2 })} credited to ${creditDialog.user.display_name || creditDialog.user.email
+      }`
+    );
+    setCreditDialog({ open: false, user: null });
+    fetchUsers();
+    setCreditSubmitting(false);
+  };
 
   const toggleRole = async (userId: string, role: "admin" | "moderator" | "user" | "enterprise") => {
     const userRoles = roles[userId] || [];
@@ -140,9 +234,8 @@ const AdminUsers = () => {
               <button
                 key={f}
                 onClick={() => setStatusFilter(f)}
-                className={`px-3 py-1.5 rounded-pill text-xs font-body font-medium transition-all ${
-                  statusFilter === f ? "bg-accent-dim text-primary" : "text-muted-foreground hover:text-foreground bg-secondary"
-                }`}
+                className={`px-3 py-1.5 rounded-pill text-xs font-body font-medium transition-all ${statusFilter === f ? "bg-accent-dim text-primary" : "text-muted-foreground hover:text-foreground bg-secondary"
+                  }`}
               >
                 {f}
               </button>
@@ -194,13 +287,12 @@ const AdminUsers = () => {
                           {userRoles.map((r) => (
                             <span
                               key={r}
-                              className={`font-mono text-[10px] px-2 py-0.5 rounded-pill capitalize ${
-                                r === "admin"
-                                  ? "bg-destructive/10 text-destructive"
-                                  : r === "enterprise"
+                              className={`font-mono text-[10px] px-2 py-0.5 rounded-pill capitalize ${r === "admin"
+                                ? "bg-destructive/10 text-destructive"
+                                : r === "enterprise"
                                   ? "bg-amber-400/10 text-amber-400"
                                   : "bg-accent-dim text-primary"
-                              }`}
+                                }`}
                             >
                               {r}
                             </span>
@@ -220,6 +312,12 @@ const AdminUsers = () => {
                           <DropdownMenuContent align="end" className="bg-card border-border">
                             <DropdownMenuItem onClick={() => { setDetailUser(u); setDetailOpen(true); }} className="gap-2 text-sm">
                               <Eye size={14} /> View Details
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => openCreditDialog(u)} className="gap-2 text-sm text-emerald-400">
+                              <Wallet size={14} /> Credit Wallet
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => loginAsUser(u)} className="gap-2 text-sm text-blue-400">
+                              <LogIn size={14} /> Login as User
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem onClick={() => toggleRole(u.user_id, "admin")} className="gap-2 text-sm">
@@ -360,6 +458,124 @@ const AdminUsers = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Credit Wallet Dialog */}
+      <AnimatePresence>
+        {creditDialog.open && creditDialog.user && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50"
+              onClick={() => { if (!creditSubmitting) setCreditDialog({ open: false, user: null }); }}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.96, y: -10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.96, y: -10 }}
+              transition={{ type: "spring", stiffness: 320, damping: 28 }}
+              className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md z-50 px-4"
+            >
+              <div className="bg-card border border-emerald-500/20 rounded-xl p-6 shadow-2xl shadow-black/40">
+                {/* Header */}
+                <div className="flex items-center gap-3 mb-5">
+                  <div className="w-11 h-11 rounded-xl bg-emerald-400/10 flex items-center justify-center border border-emerald-400/20">
+                    <Wallet size={20} className="text-emerald-400" />
+                  </div>
+                  <div>
+                    <h2 className="font-heading font-bold text-lg text-foreground">Credit Wallet</h2>
+                    <p className="font-body text-xs text-muted-foreground">
+                      For: <span className="text-foreground font-medium">{creditDialog.user.display_name || creditDialog.user.email}</span>
+                    </p>
+                  </div>
+                </div>
+
+                {/* Current balance */}
+                <div className="bg-secondary border border-border rounded-xl px-4 py-3 mb-5 flex items-center justify-between">
+                  <div>
+                    <p className="font-body text-xs text-muted-foreground">Current Balance</p>
+                    <p className="font-body text-xs text-muted-foreground/60 mt-0.5">Before credit</p>
+                  </div>
+                  {loadingCreditBalance ? (
+                    <Loader2 size={16} className="animate-spin text-muted-foreground" />
+                  ) : (
+                    <p className="font-mono text-xl font-bold text-foreground">
+                      ${(creditUserBalance ?? 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </p>
+                  )}
+                </div>
+
+                {/* Info banner */}
+                <div className="p-3 rounded-lg mb-5 text-xs font-body bg-emerald-400/5 border border-emerald-400/20 text-emerald-400">
+                  💳 The amount will be credited instantly as a completed deposit and the user will be notified.
+                </div>
+
+                {/* Amount input */}
+                <div className="space-y-4">
+                  <div>
+                    <label className="font-body text-sm text-muted-foreground mb-1.5 block">Amount (USD)</label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 font-mono text-sm text-muted-foreground">
+                        <DollarSign size={14} />
+                      </span>
+                      <input
+                        id="credit-amount"
+                        type="number"
+                        min="0.01"
+                        step="0.01"
+                        placeholder="0.00"
+                        value={creditAmount}
+                        onChange={(e) => setCreditAmount(e.target.value)}
+                        autoFocus
+                        className="w-full h-10 pl-9 pr-3 rounded-md bg-input border border-border text-foreground font-mono text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400/40 focus:border-emerald-400/40 transition-all"
+                      />
+                    </div>
+                    {creditAmount && !isNaN(Number(creditAmount)) && Number(creditAmount) > 0 && (
+                      <p className="font-body text-xs text-emerald-400 mt-1">
+                        New balance: ${((creditUserBalance ?? 0) + Number(creditAmount)).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </p>
+                    )}
+                  </div>
+                  <div>
+                    <label className="font-body text-sm text-muted-foreground mb-1.5 block">Note (optional)</label>
+                    <textarea
+                      rows={2}
+                      placeholder="e.g. Promotional credit, manual adjustment..."
+                      value={creditNote}
+                      onChange={(e) => setCreditNote(e.target.value)}
+                      className="w-full px-3 py-2 rounded-md bg-input border border-border text-foreground font-body text-sm resize-none focus:outline-none focus:ring-2 focus:ring-emerald-400/40 focus:border-emerald-400/40 transition-all"
+                    />
+                  </div>
+                </div>
+
+                {/* Actions */}
+                <div className="flex gap-3 mt-5">
+                  <button
+                    onClick={() => setCreditDialog({ open: false, user: null })}
+                    disabled={creditSubmitting}
+                    className="flex-1 h-10 rounded-lg border border-border text-foreground font-body text-sm hover:bg-secondary transition-colors disabled:opacity-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleCreditWallet}
+                    disabled={creditSubmitting || !creditAmount || Number(creditAmount) <= 0}
+                    className="flex-1 h-10 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-white font-body text-sm font-medium gap-2 flex items-center justify-center transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    {creditSubmitting ? (
+                      <Loader2 size={14} className="animate-spin" />
+                    ) : (
+                      <Wallet size={14} />
+                    )}
+                    {creditSubmitting ? "Crediting..." : `Credit $${Number(creditAmount) > 0 ? Number(creditAmount).toLocaleString("en-US", { minimumFractionDigits: 2 }) : "0.00"}`}
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </AdminLayout>
   );
 };

@@ -115,10 +115,10 @@ const AppLayout = ({ children }: { children: ReactNode }) => {
                 key={item.path}
                 to={item.path}
                 className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-body font-medium transition-all ${isActive
-                    ? "bg-accent-dim text-primary"
-                    : (item as any).highlight
-                      ? "text-primary bg-primary/10 hover:bg-primary/20"
-                      : "text-muted-foreground hover:text-foreground hover:bg-secondary"
+                  ? "bg-accent-dim text-primary"
+                  : (item as any).highlight
+                    ? "text-primary bg-primary/10 hover:bg-primary/20"
+                    : "text-muted-foreground hover:text-foreground hover:bg-secondary"
                   }`}
               >
                 <item.icon size={18} />

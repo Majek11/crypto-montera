@@ -146,6 +146,8 @@ const Deposit = () => {
     if (!user) return;
     setSubmitting(true);
 
+    const reference = `DEP-${Date.now()}-${Math.random().toString(36).slice(2, 7).toUpperCase()}`;
+
     const { data, error } = await supabase.from("transactions").insert({
       user_id: user.id,
       type: "deposit" as const,
@@ -154,6 +156,7 @@ const Deposit = () => {
       network: selectedChain.id,
       status: "pending" as const,
       tx_hash: txHash || null,
+      reference,
       description: `${selectedCurrency} deposit via ${selectedChain.name} — sent to Montera wallet`,
     }).select("id").single();
 

@@ -15,6 +15,7 @@ import {
   TrendingUp,
   GitBranch,
   Wallet,
+  Megaphone,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -26,6 +27,7 @@ const adminNav = [
   { label: "Referrals", icon: GitBranch, path: "/admin/referrals" },
   { label: "KYC Review", icon: ShieldCheck, path: "/admin/kyc" },
   { label: "Bonuses", icon: Gift, path: "/admin/bonus" },
+  { label: "Announcements", icon: Megaphone, path: "/admin/announcements" },
   { label: "Analytics", icon: BarChart3, path: "/admin/analytics" },
   { label: "Plans", icon: Briefcase, path: "/admin/plans" },
   { label: "Wallet Settings", icon: Wallet, path: "/admin/wallet-settings" },

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowLeft, ArrowUpRight, ArrowDownLeft, Clock, CheckCircle, XCircle, Loader2, Copy, Check } from "lucide-react";
+import { ArrowLeft, ArrowUpRight, ArrowDownLeft, Clock, CheckCircle, XCircle, Loader2, Copy, Check, Download } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -82,13 +82,91 @@ const TransactionDetail = () => {
   const steps = statusSteps[transaction.type] || ["Submitted", "Completed"];
   const currentStep = transaction.status === "completed" ? steps.length - 1
     : transaction.status === "processing" ? Math.min(1, steps.length - 1)
-    : transaction.status === "failed" || transaction.status === "cancelled" ? -1
-    : 0;
+      : transaction.status === "failed" || transaction.status === "cancelled" ? -1
+        : 0;
 
   const copyRef = () => {
     navigator.clipboard.writeText(transaction.reference || transaction.id);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const downloadReceipt = () => {
+    const isInc = transaction.type === "deposit" || transaction.type === "return";
+    const amountStr = `${isInc ? "+" : "-"}$${Math.abs(transaction.amount).toLocaleString("en-US", { minimumFractionDigits: 2 })} ${transaction.currency}`;
+    const date = new Date(transaction.created_at).toLocaleString("en-US", { dateStyle: "long", timeStyle: "medium" });
+    const statusColor = transaction.status === "completed" ? "#22c55e" : transaction.status === "pending" ? "#f59e0b" : transaction.status === "processing" ? "#60a5fa" : "#ef4444";
+
+    const rows = [
+      ["Transaction ID", transaction.id],
+      ["Type", transaction.type.toUpperCase()],
+      ["Amount", amountStr],
+      ["Currency", transaction.currency],
+      ["Status", transaction.status.toUpperCase()],
+      ["Description", transaction.description || "—"],
+      ["Reference", transaction.reference || "—"],
+      ["TX Hash", transaction.tx_hash || "Pending"],
+      ["Network", transaction.network || "—"],
+      ["Date & Time", date],
+    ].map(([label, val]) => `
+      <tr>
+        <td style="padding:10px 16px;color:#6b7280;font-size:13px;border-bottom:1px solid #f3f4f6;width:38%">${label}</td>
+        <td style="padding:10px 16px;font-size:13px;border-bottom:1px solid #f3f4f6;word-break:break-all;color:#111">${val}</td>
+      </tr>`).join("");
+
+    const html = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Receipt — ${transaction.id.slice(0, 8)}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{font-family:'Inter',sans-serif;background:#f9fafb;display:flex;align-items:flex-start;justify-content:center;min-height:100vh;padding:32px 16px}
+    .card{background:#fff;border-radius:16px;max-width:520px;width:100%;box-shadow:0 4px 24px rgba(0,0,0,.08);overflow:hidden}
+    .header{background:linear-gradient(135deg,#0f172a 0%,#1e293b 100%);padding:32px;text-align:center}
+    .logo{font-size:26px;font-weight:700;color:#fff;letter-spacing:-0.5px;margin-bottom:4px}
+    .logo span{color:#4ade80}
+    .subtitle{font-size:12px;color:#94a3b8;letter-spacing:1.5px;text-transform:uppercase}
+    .amount-section{padding:28px 32px 20px;text-align:center;border-bottom:1px solid #f3f4f6}
+    .amount{font-size:40px;font-weight:700;color:${isInc ? "#16a34a" : "#111"}}
+    .amount-label{font-size:12px;color:#6b7280;margin-top:4px}
+    .status-badge{display:inline-flex;align-items:center;gap:6px;padding:4px 12px;border-radius:999px;font-size:12px;font-weight:600;background:${statusColor}20;color:${statusColor};margin-top:10px;text-transform:uppercase;letter-spacing:.5px}
+    table{width:100%;border-collapse:collapse}
+    .footer{padding:20px 32px;background:#f9fafb;border-top:1px solid #f3f4f6;text-align:center}
+    .footer p{font-size:11px;color:#9ca3af;line-height:1.6}
+    .print-btn{display:block;margin:24px auto 0;padding:10px 28px;background:#16a34a;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit}
+    @media print{.print-btn{display:none}body{background:#fff;padding:0}.card{box-shadow:none;border-radius:0;max-width:100%}}
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="header">
+      <div class="logo">Monte<span>ra</span></div>
+      <div class="subtitle">Official Transaction Receipt</div>
+    </div>
+    <div class="amount-section">
+      <div class="amount">${amountStr}</div>
+      <div class="amount-label">${transaction.type.charAt(0).toUpperCase() + transaction.type.slice(1)} Transaction</div>
+      <div class="status-badge">${transaction.status}</div>
+    </div>
+    <table>${rows}</table>
+    <div class="footer">
+      <p>This is an official receipt issued by Montera Crypto Investment Platform.<br>
+      Please retain this document for your records. For support, contact <strong>support@monteracrypto.com</strong></p>
+      <button class="print-btn" onclick="window.print()">⬇ Save as PDF / Print</button>
+    </div>
+  </div>
+</body>
+</html>`;
+
+    const win = window.open("", "_blank", "width=620,height=820");
+    if (!win) { toast.error("Pop-up blocked — please allow pop-ups for this site"); return; }
+    win.document.write(html);
+    win.document.close();
+    win.focus();
+    setTimeout(() => win.print(), 600);
   };
 
   return (
@@ -119,20 +197,29 @@ const TransactionDetail = () => {
               </div>
             </div>
 
-            {/* Status Badge */}
-            <div className="flex items-center gap-2">
-              {transaction.status === "completed" && <CheckCircle size={14} className="text-primary" />}
-              {transaction.status === "pending" && <Clock size={14} className="text-amber-400" />}
-              {transaction.status === "processing" && <Loader2 size={14} className="text-blue-400 animate-spin" />}
-              {(transaction.status === "failed" || transaction.status === "cancelled") && <XCircle size={14} className="text-destructive" />}
-              <span className={`font-mono text-xs px-2 py-0.5 rounded-pill capitalize ${
-                transaction.status === "completed" ? "bg-accent-dim text-primary"
-                : transaction.status === "pending" ? "bg-amber-400/10 text-amber-400"
-                : transaction.status === "processing" ? "bg-blue-400/10 text-blue-400"
-                : "bg-destructive/10 text-destructive"
-              }`}>
-                {transaction.status}
-              </span>
+            {/* Status Badge + Download button */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                {transaction.status === "completed" && <CheckCircle size={14} className="text-primary" />}
+                {transaction.status === "pending" && <Clock size={14} className="text-amber-400" />}
+                {transaction.status === "processing" && <Loader2 size={14} className="text-blue-400 animate-spin" />}
+                {(transaction.status === "failed" || transaction.status === "cancelled") && <XCircle size={14} className="text-destructive" />}
+                <span className={`font-mono text-xs px-2 py-0.5 rounded-pill capitalize ${transaction.status === "completed" ? "bg-accent-dim text-primary"
+                    : transaction.status === "pending" ? "bg-amber-400/10 text-amber-400"
+                      : transaction.status === "processing" ? "bg-blue-400/10 text-blue-400"
+                        : "bg-destructive/10 text-destructive"
+                  }`}>
+                  {transaction.status}
+                </span>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={downloadReceipt}
+                className="gap-2 text-xs h-8"
+              >
+                <Download size={13} /> Download Receipt
+              </Button>
             </div>
           </div>
 
@@ -144,23 +231,20 @@ const TransactionDetail = () => {
                 {steps.map((s, i) => (
                   <div key={s} className="flex items-center flex-1 last:flex-initial">
                     <div className="flex flex-col items-center">
-                      <div className={`w-10 h-10 rounded-full flex items-center justify-center font-mono text-xs font-bold transition-all ${
-                        i <= currentStep
+                      <div className={`w-10 h-10 rounded-full flex items-center justify-center font-mono text-xs font-bold transition-all ${i <= currentStep
                           ? "bg-primary text-primary-foreground"
                           : "bg-secondary text-muted-foreground"
-                      }`}>
+                        }`}>
                         {i <= currentStep ? <Check size={14} /> : i + 1}
                       </div>
-                      <span className={`font-body text-[10px] mt-2 text-center ${
-                        i <= currentStep ? "text-primary" : "text-muted-foreground"
-                      }`}>
+                      <span className={`font-body text-[10px] mt-2 text-center ${i <= currentStep ? "text-primary" : "text-muted-foreground"
+                        }`}>
                         {s}
                       </span>
                     </div>
                     {i < steps.length - 1 && (
-                      <div className={`flex-1 h-0.5 mx-2 mb-5 ${
-                        i < currentStep ? "bg-primary" : "bg-border"
-                      }`} />
+                      <div className={`flex-1 h-0.5 mx-2 mb-5 ${i < currentStep ? "bg-primary" : "bg-border"
+                        }`} />
                     )}
                   </div>
                 ))}

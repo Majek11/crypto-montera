@@ -29,6 +29,8 @@ const AdminBonus = () => {
     const [note, setNote] = useState("");
     const [submitting, setSubmitting] = useState(false);
     const [recentBonuses, setRecentBonuses] = useState<any[]>([]);
+    const [userBalance, setUserBalance] = useState<number | null>(null);
+    const [loadingBalance, setLoadingBalance] = useState(false);
 
     const fetchUsers = async () => {
         const { data, error } = await supabase
@@ -55,10 +57,30 @@ const AdminBonus = () => {
         fetchRecentBonuses();
     }, []);
 
-    const openDialog = (user: Profile, type: BonusType) => {
+    const openDialog = async (user: Profile, type: BonusType) => {
         setAmount("");
         setNote("");
+        setUserBalance(null);
         setDialog({ open: true, user, type });
+
+        // Fetch live wallet balance for this user
+        setLoadingBalance(true);
+        const { data } = await supabase
+            .from("transactions")
+            .select("amount, type")
+            .eq("user_id", user.user_id)
+            .eq("status", "completed");
+
+        if (data) {
+            const bal = data.reduce((acc, tx) => {
+                const amt = Number(tx.amount);
+                if (tx.type === "deposit" || tx.type === "return") return acc + amt;
+                if (tx.type === "withdrawal" || tx.type === "investment" || tx.type === "fee") return acc - amt;
+                return acc;
+            }, 0);
+            setUserBalance(Math.max(0, bal));
+        }
+        setLoadingBalance(false);
     };
 
     const submitBonus = async () => {
@@ -276,6 +298,23 @@ const AdminBonus = () => {
                                             For: <span className="text-foreground">{dialog.user.display_name || dialog.user.email}</span>
                                         </p>
                                     </div>
+                                </div>
+
+                                {/* User's current wallet balance */}
+                                <div className="bg-secondary border border-border rounded-lg px-4 py-3 mb-4 flex items-center justify-between">
+                                    <div>
+                                        <p className="font-body text-xs text-muted-foreground">Current Wallet Balance</p>
+                                        <p className="font-body text-xs text-primary/60 mt-0.5">
+                                            {dialog.user.display_name || dialog.user.email}
+                                        </p>
+                                    </div>
+                                    {loadingBalance ? (
+                                        <Loader2 size={15} className="animate-spin text-muted-foreground" />
+                                    ) : (
+                                        <p className="font-mono text-lg font-bold text-foreground">
+                                            ${(userBalance ?? 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                        </p>
+                                    )}
                                 </div>
 
                                 {/* Type description */}

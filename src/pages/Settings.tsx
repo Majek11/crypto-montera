@@ -22,6 +22,13 @@ const profileSchema = z.object({
   phone: z.string().trim().max(20).optional(),
   country: z.string().trim().max(50).optional(),
   bio: z.string().trim().max(250).optional(),
+  date_of_birth: z.string().optional(),
+  nationality: z.string().trim().max(100).optional(),
+  occupation: z.string().trim().max(100).optional(),
+  street_address: z.string().trim().max(200).optional(),
+  city: z.string().trim().max(100).optional(),
+  state_province: z.string().trim().max(100).optional(),
+  postal_code: z.string().trim().max(20).optional(),
 });
 
 const Settings = () => {
@@ -30,7 +37,11 @@ const Settings = () => {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [form, setForm] = useState({ display_name: "", phone: "", country: "", bio: "" });
+  const [form, setForm] = useState({
+    display_name: "", phone: "", country: "", bio: "",
+    date_of_birth: "", nationality: "", occupation: "",
+    street_address: "", city: "", state_province: "", postal_code: "",
+  });
   const [kycStatus, setKycStatus] = useState("pending");
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
@@ -52,6 +63,13 @@ const Settings = () => {
           phone: profileData.phone || "",
           country: profileData.country || "",
           bio: profileData.bio || "",
+          date_of_birth: (profileData as any).date_of_birth || "",
+          nationality: (profileData as any).nationality || "",
+          occupation: (profileData as any).occupation || "",
+          street_address: (profileData as any).street_address || "",
+          city: (profileData as any).city || "",
+          state_province: (profileData as any).state_province || "",
+          postal_code: (profileData as any).postal_code || "",
         });
       }
       if (kycError) console.warn("KYC fetch error:", kycError.message);
@@ -241,26 +259,69 @@ const Settings = () => {
                 {[...Array(4)].map((_, i) => <div key={i} className="h-10 bg-secondary rounded animate-pulse" />)}
               </div>
             ) : (
-              <form onSubmit={handleSave} className="space-y-4">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <Label className="font-body text-sm text-muted-foreground">{t("settings.displayName")}</Label>
-                    <Input value={form.display_name} onChange={(e) => setForm({ ...form, display_name: e.target.value })} className="mt-1.5 bg-input border-border text-foreground" />
-                  </div>
-                  <div>
-                    <Label className="font-body text-sm text-muted-foreground">{t("settings.email")}</Label>
-                    <Input value={user?.email || ""} disabled className="mt-1.5 bg-input border-border text-muted-foreground" />
-                  </div>
-                  <div>
-                    <Label className="font-body text-sm text-muted-foreground">{t("settings.phone")}</Label>
-                    <Input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} placeholder="+1 234 567 890" className="mt-1.5 bg-input border-border text-foreground" />
-                  </div>
-                  <div>
-                    <Label className="font-body text-sm text-muted-foreground">{t("settings.country")}</Label>
-                    <Input value={form.country} onChange={(e) => setForm({ ...form, country: e.target.value })} placeholder="United States" className="mt-1.5 bg-input border-border text-foreground" />
+              <form onSubmit={handleSave} className="space-y-7">
+
+                {/* ── Personal Info ── */}
+                <div>
+                  <p className="font-body text-[10px] font-semibold text-primary uppercase tracking-widest mb-3">Personal Information</p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <Label className="font-body text-sm text-muted-foreground">{t("settings.displayName")} *</Label>
+                      <Input value={form.display_name} onChange={(e) => setForm({ ...form, display_name: e.target.value })} className="mt-1.5 bg-input border-border text-foreground" />
+                    </div>
+                    <div>
+                      <Label className="font-body text-sm text-muted-foreground">{t("settings.email")}</Label>
+                      <Input value={user?.email || ""} disabled className="mt-1.5 bg-input border-border text-muted-foreground" />
+                    </div>
+                    <div>
+                      <Label className="font-body text-sm text-muted-foreground">{t("settings.phone")}</Label>
+                      <Input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} placeholder="+1 234 567 890" className="mt-1.5 bg-input border-border text-foreground" />
+                    </div>
+                    <div>
+                      <Label className="font-body text-sm text-muted-foreground">Date of Birth</Label>
+                      <Input type="date" value={form.date_of_birth} onChange={(e) => setForm({ ...form, date_of_birth: e.target.value })} className="mt-1.5 bg-input border-border text-foreground" />
+                    </div>
+                    <div>
+                      <Label className="font-body text-sm text-muted-foreground">Nationality</Label>
+                      <Input value={form.nationality} onChange={(e) => setForm({ ...form, nationality: e.target.value })} placeholder="e.g. American, British" className="mt-1.5 bg-input border-border text-foreground" />
+                    </div>
+                    <div>
+                      <Label className="font-body text-sm text-muted-foreground">Occupation</Label>
+                      <Input value={form.occupation} onChange={(e) => setForm({ ...form, occupation: e.target.value })} placeholder="e.g. Software Engineer, Trader" className="mt-1.5 bg-input border-border text-foreground" />
+                    </div>
                   </div>
                 </div>
+
+                {/* ── Address ── */}
                 <div>
+                  <p className="font-body text-[10px] font-semibold text-primary uppercase tracking-widest mb-3">Address</p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="sm:col-span-2">
+                      <Label className="font-body text-sm text-muted-foreground">Street Address</Label>
+                      <Input value={form.street_address} onChange={(e) => setForm({ ...form, street_address: e.target.value })} placeholder="123 Main St, Apt 4B" className="mt-1.5 bg-input border-border text-foreground" />
+                    </div>
+                    <div>
+                      <Label className="font-body text-sm text-muted-foreground">City</Label>
+                      <Input value={form.city} onChange={(e) => setForm({ ...form, city: e.target.value })} placeholder="New York" className="mt-1.5 bg-input border-border text-foreground" />
+                    </div>
+                    <div>
+                      <Label className="font-body text-sm text-muted-foreground">State / Province</Label>
+                      <Input value={form.state_province} onChange={(e) => setForm({ ...form, state_province: e.target.value })} placeholder="California" className="mt-1.5 bg-input border-border text-foreground" />
+                    </div>
+                    <div>
+                      <Label className="font-body text-sm text-muted-foreground">Postal Code</Label>
+                      <Input value={form.postal_code} onChange={(e) => setForm({ ...form, postal_code: e.target.value })} placeholder="10001" className="mt-1.5 bg-input border-border text-foreground" />
+                    </div>
+                    <div>
+                      <Label className="font-body text-sm text-muted-foreground">{t("settings.country")}</Label>
+                      <Input value={form.country} onChange={(e) => setForm({ ...form, country: e.target.value })} placeholder="United States" className="mt-1.5 bg-input border-border text-foreground" />
+                    </div>
+                  </div>
+                </div>
+
+                {/* ── Bio ── */}
+                <div>
+                  <p className="font-body text-[10px] font-semibold text-primary uppercase tracking-widest mb-3">About</p>
                   <Label className="font-body text-sm text-muted-foreground">{t("settings.bio")}</Label>
                   <textarea
                     value={form.bio}
@@ -270,6 +331,7 @@ const Settings = () => {
                     className="mt-1.5 w-full rounded-md bg-input border border-border text-foreground text-sm font-body p-3 resize-none focus:outline-none focus:ring-2 focus:ring-ring"
                   />
                 </div>
+
                 <Button type="submit" variant="hero" disabled={saving}>{saving ? t("common.saving") : t("common.save")}</Button>
               </form>
             )}

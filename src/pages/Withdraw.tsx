@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { ArrowUpRight, AlertTriangle, Check, Shield } from "lucide-react";
+import { ArrowUpRight, AlertTriangle, Check, Shield, ShieldAlert } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -30,17 +30,27 @@ const Withdraw = () => {
   const [submitting, setSubmitting] = useState(false);
   const [step, setStep] = useState<"configure" | "confirm" | "submitted">("configure");
   const [availableBalance, setAvailableBalance] = useState(0);
+  const [kycStatus, setKycStatus] = useState<string>("pending");
+  const [kycLoading, setKycLoading] = useState(true);
 
   useEffect(() => {
     if (!user) return;
     const fetchData = async () => {
-      const { data: walletData, error } = await supabase.from("wallets").select("*").eq("user_id", user.id).order("is_primary", { ascending: false });
-      if (error) { toast.error("Failed to load wallets"); return; }
+      const [
+        { data: walletData, error },
+        { data: kycData },
+      ] = await Promise.all([
+        supabase.from("wallets").select("*").eq("user_id", user.id).order("is_primary", { ascending: false }),
+        supabase.from("kyc_verifications").select("status").eq("user_id", user.id).order("created_at", { ascending: false }).limit(1).maybeSingle(),
+      ]);
+      if (error) { toast.error("Failed to load wallets"); }
       if (walletData && walletData.length > 0) {
         setWallets(walletData);
         setSelectedWallet(walletData[0]);
         setAvailableBalance(walletData.reduce((acc, w) => acc + Number(w.balance || 0), 0));
       }
+      setKycStatus((kycData as any)?.status || "pending");
+      setKycLoading(false);
     };
     fetchData();
   }, [user]);
@@ -62,6 +72,8 @@ const Withdraw = () => {
     if (!user) return;
     setSubmitting(true);
 
+    const reference = `WTH-${Date.now()}-${Math.random().toString(36).slice(2, 7).toUpperCase()}`;
+
     const { error } = await supabase.from("transactions").insert({
       user_id: user.id,
       type: "withdrawal" as const,
@@ -69,6 +81,7 @@ const Withdraw = () => {
       currency: selectedCurrency,
       status: "pending" as const,
       wallet_id: selectedWallet?.id || null,
+      reference,
       description: `${selectedCurrency} withdrawal to ${withdrawAddress.slice(0, 8)}...${withdrawAddress.slice(-6)} via ${selectedChain.name}`,
     });
 
@@ -83,6 +96,42 @@ const Withdraw = () => {
 
   const fee = Number(amount) * 0.001; // 0.1% fee
   const receiveAmount = Number(amount) - fee;
+
+  // KYC gate — must be approved before accessing withdrawal form
+  if (!kycLoading && kycStatus !== "approved") {
+    return (
+      <AppLayout>
+        <div className="p-6 lg:p-8 max-w-2xl mx-auto">
+          <motion.div initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} className="bg-card border border-amber-400/30 rounded-xl p-8 text-center">
+            <div className="w-16 h-16 rounded-full bg-amber-400/10 flex items-center justify-center mx-auto mb-5">
+              <ShieldAlert size={28} className="text-amber-400" />
+            </div>
+            <h2 className="font-heading font-bold text-xl text-foreground mb-2">
+              KYC Verification Required
+            </h2>
+            <p className="font-body text-sm text-muted-foreground mb-2 max-w-sm mx-auto">
+              {kycStatus === "submitted" || kycStatus === "under_review"
+                ? "Your KYC documents are currently under review. Withdrawals will be unlocked once your identity is verified."
+                : kycStatus === "rejected"
+                  ? "Your KYC was rejected. Please resubmit with a valid government-issued ID to unlock withdrawals."
+                  : "To protect our platform and comply with regulations, identity verification (KYC) is required before you can make withdrawals."}
+            </p>
+            {(kycStatus === "submitted" || kycStatus === "under_review") && (
+              <p className="font-mono text-xs text-blue-400 mb-6">Review usually completes within 24 hours.</p>
+            )}
+            <div className="flex gap-3 justify-center mt-6">
+              <Button variant="outline" onClick={() => navigate("/dashboard")}>Back to Dashboard</Button>
+              {(kycStatus === "pending" || kycStatus === "rejected") && (
+                <Button variant="hero" onClick={() => navigate("/kyc")}>
+                  {kycStatus === "rejected" ? "Resubmit KYC" : "Complete KYC"}
+                </Button>
+              )}
+            </div>
+          </motion.div>
+        </div>
+      </AppLayout>
+    );
+  }
 
   return (
     <AppLayout>
@@ -118,8 +167,8 @@ const Withdraw = () => {
                     key={c.id}
                     onClick={() => setSelectedChain(c)}
                     className={`p-3 rounded-lg border text-left transition-all ${selectedChain.id === c.id
-                        ? "border-primary bg-accent-dim"
-                        : "border-border hover:border-border-light bg-secondary"
+                      ? "border-primary bg-accent-dim"
+                      : "border-border hover:border-border-light bg-secondary"
                       }`}
                   >
                     <p className="font-body text-sm font-medium text-foreground">{c.name}</p>

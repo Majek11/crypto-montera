@@ -1,6 +1,6 @@
 import { useMemo, useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { ArrowUpRight, ArrowDownRight, TrendingUp, Star, Wallet } from "lucide-react";
+import { ArrowUpRight, ArrowDownRight, TrendingUp, Star, Wallet, AlertCircle } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import AppLayout from "@/components/layout/AppLayout";
 import PortfolioChart from "@/components/dashboard/PortfolioChart";
@@ -9,9 +9,12 @@ import RecentActivity from "@/components/dashboard/RecentActivity";
 import { useInvestments } from "@/hooks/useInvestments";
 import { useTransactions } from "@/hooks/useTransactions";
 import { useAuth } from "@/contexts/AuthContext";
+import { useImpersonation } from "@/contexts/ImpersonationContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Link } from "react-router-dom";
 import SEO from "@/components/SEO";
+import AnnouncementBanner from "@/components/features/AnnouncementBanner";
 
 const StatCardSkeleton = () => (
   <div className="bg-card border border-border rounded-lg p-5 space-y-3">
@@ -24,15 +27,24 @@ const StatCardSkeleton = () => (
 const Dashboard = () => {
   const { t } = useTranslation();
   const { user } = useAuth();
+  const { effectiveUserId } = useImpersonation();
+  const effectiveUid = effectiveUserId(user?.id);
   const { data: investments = [], isLoading: invLoading } = useInvestments();
   const { data: transactions = [], isLoading: txLoading } = useTransactions({ limit: 10 });
   const [availableBalance, setAvailableBalance] = useState(0);
+  const [kycStatus, setKycStatus] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!user) return;
-    supabase.from("profiles").select("balance").eq("user_id", user.id).single()
+    if (!effectiveUid) return;
+    supabase.from("profiles").select("balance").eq("user_id", effectiveUid).single()
       .then(({ data }) => { if (data) setAvailableBalance(Number((data as any).balance) || 0); });
-  }, [user]);
+    supabase.from("kyc_verifications")
+      .select("status")
+      .eq("user_id", effectiveUid)
+      .order("created_at", { ascending: false })
+      .limit(1).maybeSingle()
+      .then(({ data }) => setKycStatus((data as any)?.status || "pending"));
+  }, [effectiveUid]);
 
   const loading = invLoading || txLoading;
 
@@ -96,6 +108,48 @@ const Dashboard = () => {
           <h1 className="font-heading font-bold text-3xl text-foreground mb-1">{t("dashboard.title")}</h1>
           <p className="font-body text-sm text-muted-foreground">{t("dashboard.subtitle")}</p>
         </motion.div>
+
+        {/* Platform Announcements */}
+        <AnnouncementBanner />
+
+        {/* KYC Banner — always visible until approved */}
+        {kycStatus && kycStatus !== "approved" && (
+          <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} className="mb-6">
+            <div className={`border rounded-lg p-4 flex items-start gap-3 ${kycStatus === "submitted" || kycStatus === "under_review"
+              ? "bg-blue-400/10 border-blue-400/30"
+              : kycStatus === "rejected"
+                ? "bg-destructive/10 border-destructive/30"
+                : "bg-amber-400/10 border-amber-400/30"
+              }`}>
+              <AlertCircle size={16} className={`shrink-0 mt-0.5 ${kycStatus === "submitted" || kycStatus === "under_review" ? "text-blue-400"
+                : kycStatus === "rejected" ? "text-destructive"
+                  : "text-amber-400"
+                }`} />
+              <div className="flex-1 min-w-0">
+                <p className="font-body text-sm font-semibold text-foreground">
+                  {kycStatus === "rejected" ? "❌ KYC Verification Rejected"
+                    : kycStatus === "submitted" || kycStatus === "under_review" ? "🔄 KYC Under Review"
+                      : "⚠️ Complete Your KYC Verification"}
+                </p>
+                <p className="font-body text-xs text-muted-foreground mt-0.5">
+                  {kycStatus === "rejected"
+                    ? "Your documents were rejected. Please resubmit with valid ID to unlock withdrawals."
+                    : kycStatus === "submitted" || kycStatus === "under_review"
+                      ? "Your documents are being reviewed. We'll notify you once verified (usually within 24h)."
+                      : "ID verification is required to withdraw funds and access all platform features."}
+                </p>
+              </div>
+              {(kycStatus === "pending" || kycStatus === "rejected") && (
+                <Link
+                  to="/kyc"
+                  className="shrink-0 px-3 py-1.5 rounded-lg border font-body text-xs font-medium transition-colors border-amber-400/40 text-amber-400 hover:bg-amber-400/10"
+                >
+                  {kycStatus === "rejected" ? "Resubmit" : "Verify Now"}
+                </Link>
+              )}
+            </div>
+          </motion.div>
+        )}
 
         {/* Stat cards */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
