@@ -132,7 +132,7 @@ const AdminUsers = () => {
     setCreditSubmitting(true);
     const amountNum = Number(creditAmount);
     const isProfit = creditDialog.type === 'profit';
-    const transactionType = isProfit ? 'return' : 'deposit';
+    const transactionType = isProfit ? 'profit' : 'admin_deposit';
     const description = creditNote.trim() || (isProfit ? "💰 Admin Profit Credit" : "💳 Admin Balance Credit");
 
     // Insert the appropriate transaction type

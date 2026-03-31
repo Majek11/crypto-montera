@@ -1,21 +1,20 @@
-// This is the fixed handleCreditWallet function
-// Copy this into AdminUsers.tsx to replace the existing function
+// Fixed handleCreditWallet function for AdminUsers.tsx
+// This replaces the existing function to properly handle missing profit column
 
 const handleCreditWallet = async () => {
   if (!creditDialog.user || !creditAmount || isNaN(Number(creditAmount)) || Number(creditAmount) <= 0) {
     toast.error("Please enter a valid amount");
     return;
   }
+  
   setCreditSubmitting(true);
   const amountNum = Number(creditAmount);
   const isProfit = creditDialog.type === 'profit';
-  const transactionType = isProfit ? 'return' : 'deposit';
   const description = creditNote.trim() || (isProfit ? "💰 Admin Profit Credit" : "💳 Admin Balance Credit");
 
   try {
-    console.log(`Adding ${isProfit ? 'profit' : 'balance'}: $${amountNum} to user ${creditDialog.user.email}`);
-    
-    // Step 1: Insert transaction first
+    // Step 1: Create transaction record
+    const transactionType = isProfit ? 'return' : 'admin_deposit';
     const { data: txData, error: txError } = await supabase.from("transactions").insert({
       user_id: creditDialog.user.user_id,
       type: transactionType,
@@ -33,9 +32,12 @@ const handleCreditWallet = async () => {
       return;
     }
 
-    console.log("Transaction created:", txData);
+    console.log("Transaction created successfully:", txData);
 
     // Step 2: Update profile balance/profit
+    let updateSuccess = false;
+    let updateMethod = '';
+
     if (isProfit) {
       // Try to update profit column first
       const { error: profitError } = await supabase
@@ -44,63 +46,67 @@ const handleCreditWallet = async () => {
         .eq("user_id", creditDialog.user.user_id);
 
       if (profitError && profitError.code === '42703') {
-        // Profit column doesn't exist, add to balance but transaction is still 'return' type
-        console.log("Profit column doesn't exist, adding to balance instead");
+        // Profit column doesn't exist, add to balance instead
+        console.log("Profit column doesn't exist, adding to balance (transaction remains as 'return' for Dashboard calculation)");
         const { error: balanceError } = await supabase
           .from("profiles")
           .update({ balance: (creditUserBalance ?? 0) + amountNum })
           .eq("user_id", creditDialog.user.user_id);
         
         if (balanceError) {
-          console.error("Balance update error:", balanceError);
-          toast.error("Failed to update balance: " + balanceError.message);
-          setCreditSubmitting(false);
-          return;
+          throw new Error(`Failed to update balance: ${balanceError.message}`);
         }
         
-        toast.success(`${amountNum.toLocaleString("en-US", { minimumFractionDigits: 2 })} profit added (stored in balance until profit column is set up)`);
+        updateSuccess = true;
+        updateMethod = 'balance (profit column missing)';
       } else if (profitError) {
-        console.error("Profit update error:", profitError);
-        toast.error("Failed to update profit: " + profitError.message);
-        setCreditSubmitting(false);
-        return;
+        throw new Error(`Failed to update profit: ${profitError.message}`);
       } else {
-        console.log("Profit updated successfully");
-        toast.success(`${amountNum.toLocaleString("en-US", { minimumFractionDigits: 2 })} profit added to ${creditDialog.user.display_name || creditDialog.user.email}`);
+        updateSuccess = true;
+        updateMethod = 'profit column';
       }
     } else {
-      // Update balance
+      // Update balance for regular credit
       const { error: balanceError } = await supabase
         .from("profiles")
         .update({ balance: (creditUserBalance ?? 0) + amountNum })
         .eq("user_id", creditDialog.user.user_id);
       
       if (balanceError) {
-        console.error("Balance update error:", balanceError);
-        toast.error("Failed to update balance: " + balanceError.message);
-        setCreditSubmitting(false);
-        return;
+        throw new Error(`Failed to update balance: ${balanceError.message}`);
       }
       
-      console.log("Balance updated successfully");
-      toast.success(`${amountNum.toLocaleString("en-US", { minimumFractionDigits: 2 })} balance credited to ${creditDialog.user.display_name || creditDialog.user.email}`);
+      updateSuccess = true;
+      updateMethod = 'balance';
     }
 
-    // Step 3: Send notification
-    await supabase.from("notifications").insert({
-      user_id: creditDialog.user.user_id,
-      title: isProfit ? "💰 Profit Added" : "💳 Balance Credited",
-      message: `${amountNum.toLocaleString("en-US", { minimumFractionDigits: 2 })} has been ${isProfit ? 'added to your profit' : 'credited to your balance'}.${creditNote.trim() ? ` Note: ${creditNote.trim()}` : ""}`,
-      type: "success",
-    });
+    if (updateSuccess) {
+      console.log(`Successfully updated ${updateMethod}`);
+      
+      // Step 3: Send notification to user
+      await supabase.from("notifications").insert({
+        user_id: creditDialog.user.user_id,
+        title: isProfit ? "💰 Profit Added" : "💳 Balance Credited",
+        message: `${amountNum.toLocaleString("en-US", { minimumFractionDigits: 2 })} has been ${isProfit ? 'added to your profit' : 'credited to your balance'}.${creditNote.trim() ? ` Note: ${creditNote.trim()}` : ""}`,
+        type: "success",
+      });
 
-    setCreditDialog({ open: false, user: null, type: 'balance' });
-    fetchUsers();
-    setCreditSubmitting(false);
+      // Step 4: Show success message
+      const successMsg = isProfit 
+        ? `${amountNum.toLocaleString("en-US", { minimumFractionDigits: 2 })} profit added to ${creditDialog.user.display_name || creditDialog.user.email} (will show in Total P&L)`
+        : `${amountNum.toLocaleString("en-US", { minimumFractionDigits: 2 })} balance credited to ${creditDialog.user.display_name || creditDialog.user.email}`;
+      
+      toast.success(successMsg);
+      
+      // Step 5: Close dialog and refresh
+      setCreditDialog({ open: false, user: null, type: 'balance' });
+      fetchUsers();
+    }
     
   } catch (error) {
-    console.error("Unexpected error:", error);
-    toast.error("Failed to credit wallet: " + (error as any).message);
+    console.error("Credit wallet error:", error);
+    toast.error(error instanceof Error ? error.message : "Failed to process credit");
+  } finally {
     setCreditSubmitting(false);
   }
 };
