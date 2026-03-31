@@ -41,6 +41,17 @@ const Dashboard = () => {
     setRefreshKey(prev => prev + 1);
   };
 
+  // Auto-refresh every 10 seconds to catch balance updates
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (effectiveUid) {
+        setRefreshKey(prev => prev + 1);
+      }
+    }, 10000); // Refresh every 10 seconds
+
+    return () => clearInterval(interval);
+  }, [effectiveUid]);
+
   useEffect(() => {
     if (!effectiveUid) return;
     

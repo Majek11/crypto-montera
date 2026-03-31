@@ -136,7 +136,7 @@ const AdminUsers = () => {
     const description = creditNote.trim() || (isProfit ? "💰 Admin Profit Credit" : "💳 Admin Balance Credit");
 
     // Insert the appropriate transaction type
-    const { error: txError } = await supabase.from("transactions").insert({
+    const { data: txData, error: txError } = await supabase.from("transactions").insert({
       user_id: creditDialog.user.user_id,
       type: transactionType,
       amount: amountNum,
@@ -144,13 +144,16 @@ const AdminUsers = () => {
       status: "completed",
       description,
       reference: `admin-${isProfit ? 'profit' : 'deposit'}-${Date.now()}`,
-    });
+    }).select().single();
 
     if (txError) {
-      toast.error(txError.message);
+      console.error("Transaction error:", txError);
+      toast.error("Failed to create transaction: " + txError.message);
       setCreditSubmitting(false);
       return;
     }
+
+    console.log("Transaction created successfully:", txData);
 
     // Also directly update the appropriate field in case trigger is not yet applied
     const updateField = isProfit ? 'profit' : 'balance';
@@ -163,21 +166,29 @@ const AdminUsers = () => {
 
     // If profit column doesn't exist, add to balance instead but keep transaction as 'return'
     if (profileError && profileError.code === '42703' && isProfit) {
-      console.log("Profit column doesn't exist, adding to balance but keeping as profit transaction");
+      console.log("Profit column doesn't exist, adding to balance instead but keeping transaction as 'return'");
       const { error: balanceError } = await supabase
         .from("profiles")
         .update({ balance: (creditUserBalance ?? 0) + amountNum })
         .eq("user_id", creditDialog.user.user_id);
       
       if (balanceError) {
+        console.error("Balance update error:", balanceError);
         toast.error("Failed to update balance: " + balanceError.message);
         setCreditSubmitting(false);
         return;
       }
+      
+      console.log("Successfully added profit to balance (profit column missing)");
+      toast.success(`${amountNum.toLocaleString("en-US", { minimumFractionDigits: 2 })} profit added (will show in Total P&L)`);
     } else if (profileError) {
+      console.error("Profile update error:", profileError);
       toast.error("Failed to update profile: " + profileError.message);
       setCreditSubmitting(false);
       return;
+    } else {
+      console.log(`Successfully updated ${isProfit ? 'profit' : 'balance'}`);
+      toast.success(`${amountNum.toLocaleString("en-US", { minimumFractionDigits: 2 })} ${isProfit ? 'profit added to' : 'balance credited to'} ${creditDialog.user.display_name || creditDialog.user.email}`);
     }
 
     // Send in-app notification to the user
