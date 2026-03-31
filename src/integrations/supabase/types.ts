@@ -227,6 +227,7 @@ export type Database = {
         Row: {
           admin_notes: string | null
           avatar_url: string | null
+          balance: number
           bio: string | null
           country: string | null
           created_at: string
@@ -234,6 +235,7 @@ export type Database = {
           email: string | null
           id: string
           phone: string | null
+          profit: number
           status: string
           updated_at: string
           user_id: string
@@ -241,6 +243,7 @@ export type Database = {
         Insert: {
           admin_notes?: string | null
           avatar_url?: string | null
+          balance?: number
           bio?: string | null
           country?: string | null
           created_at?: string
@@ -248,6 +251,7 @@ export type Database = {
           email?: string | null
           id?: string
           phone?: string | null
+          profit?: number
           status?: string
           updated_at?: string
           user_id: string
@@ -255,6 +259,7 @@ export type Database = {
         Update: {
           admin_notes?: string | null
           avatar_url?: string | null
+          balance?: number
           bio?: string | null
           country?: string | null
           created_at?: string
@@ -262,6 +267,7 @@ export type Database = {
           email?: string | null
           id?: string
           phone?: string | null
+          profit?: number
           status?: string
           updated_at?: string
           user_id?: string
@@ -454,9 +460,12 @@ export type Database = {
         | "cancelled"
       transaction_type:
         | "deposit"
+        | "admin_deposit"
+        | "profit"
         | "withdrawal"
         | "investment"
         | "return"
+        | "refund"
         | "fee"
     }
     CompositeTypes: {

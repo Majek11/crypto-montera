@@ -67,34 +67,41 @@ const AdminInvestments = () => {
 
         // Update investment: set current_value (returns) + status
         // This fires the balance trigger to credit the user
-        const { error } = await supabase.from("investments").update({
-            status: action,
-            current_value: action === "completed" ? finalValue : selected.amount,
-            total_return: action === "completed" ? finalValue - selected.amount : 0,
-        }).eq("id", selected.id);
-
-        if (error) {
-            toast.error(error.message);
-            setActionLoading(false);
-            return;
-        }
-
-        // Notify the user
+        // Use the new manual admin functions
         const profile = profiles[selected.user_id];
-        const planName = selected.investment_plans?.name || "Investment";
-        await supabase.from("notifications").insert({
-            user_id: selected.user_id,
-            title: action === "completed" ? "🎉 Investment Matured!" : "Investment Cancelled",
-            message: action === "completed"
-                ? `Your investment in ${planName} has matured. $${finalValue.toLocaleString("en-US", { minimumFractionDigits: 2 })} has been credited to your balance.${notes ? ` Note: ${notes}` : ""}`
-                : `Your investment in ${planName} has been cancelled. $${selected.amount.toLocaleString("en-US", { minimumFractionDigits: 2 })} has been refunded to your balance.${notes ? ` Note: ${notes}` : ""}`,
-            type: action === "completed" ? "success" : "error",
-            link: "/transactions",
-        });
-
-        toast.success(action === "completed"
-            ? `✅ Investment completed — $${finalValue.toLocaleString()} credited to ${profile?.display_name || "user"}`
-            : `❌ Investment cancelled — $${selected.amount.toLocaleString()} refunded`);
+        
+        if (action === "completed") {
+            // Calculate profit or use admin override
+            const originalAmount = selected.amount;
+            const adminOverrideProfit = finalValue - originalAmount;
+            
+            const { data, error } = await supabase.rpc("admin_mature_investment", {
+                p_investment_id: selected.id,
+                p_profit_amount: adminOverrideProfit > 0 ? adminOverrideProfit : null
+            });
+            
+            if (error || data?.error) {
+                toast.error(data?.error || error?.message || "Failed to complete investment");
+                setActionLoading(false);
+                return;
+            }
+            
+            toast.success(`✅ Investment completed — $${data.profit_added.toLocaleString()} profit added to ${profile?.display_name || "user"}`);
+        } else {
+            // Cancel investment
+            const { data, error } = await supabase.rpc("admin_cancel_investment", {
+                p_investment_id: selected.id,
+                p_reason: notes || "Investment cancelled by admin"
+            });
+            
+            if (error || data?.error) {
+                toast.error(data?.error || error?.message || "Failed to cancel investment");
+                setActionLoading(false);
+                return;
+            }
+            
+            toast.success(`❌ Investment cancelled — $${data.refunded_amount.toLocaleString()} refunded to ${profile?.display_name || "user"}`);
+        }
 
         setSelected(null);
         setNewValue("");
@@ -396,7 +403,7 @@ const AdminInvestments = () => {
                                 {selected.investment_plans && (
                                     <div className="bg-secondary rounded-lg px-3 py-2">
                                         <p className="font-body text-xs text-muted-foreground">
-                                            Plan target: <span className="text-foreground font-medium">{selected.investment_plans.expected_return_min}–{selected.investment_plans.expected_return_max}%</span>
+                                            Plan target: <span className="text-foreground font-medium">{selected.investment_plans.expected_return_min === selected.investment_plans.expected_return_max ? `${selected.investment_plans.expected_return_min}%` : `${selected.investment_plans.expected_return_min}–${selected.investment_plans.expected_return_max}%`}</span>
                                             {" "}= <span className="text-primary font-mono">
                                                 ${(Number(selected.amount) * (selected.investment_plans.expected_return_min / 100) + Number(selected.amount)).toFixed(2)}
                                                 –${(Number(selected.amount) * (selected.investment_plans.expected_return_max / 100) + Number(selected.amount)).toFixed(2)}

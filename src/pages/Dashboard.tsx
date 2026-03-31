@@ -32,12 +32,18 @@ const Dashboard = () => {
   const { data: investments = [], isLoading: invLoading } = useInvestments();
   const { data: transactions = [], isLoading: txLoading } = useTransactions({ limit: 10 });
   const [availableBalance, setAvailableBalance] = useState(0);
+  const [userProfit, setUserProfit] = useState(0);
   const [kycStatus, setKycStatus] = useState<string | null>(null);
 
   useEffect(() => {
     if (!effectiveUid) return;
-    supabase.from("profiles").select("balance").eq("user_id", effectiveUid).single()
-      .then(({ data }) => { if (data) setAvailableBalance(Number((data as any).balance) || 0); });
+    supabase.from("profiles").select("balance, profit").eq("user_id", effectiveUid).single()
+      .then(({ data }) => { 
+        if (data) {
+          setAvailableBalance(Number((data as any).balance) || 0);
+          setUserProfit(Number((data as any).profit) || 0);
+        }
+      });
     supabase.from("kyc_verifications")
       .select("status")
       .eq("user_id", effectiveUid)
@@ -50,9 +56,15 @@ const Dashboard = () => {
 
   const stats = useMemo(() => {
     const totalInvested = investments.reduce((s, i) => s + i.amount, 0);
-    const totalValue = investments.reduce((s, i) => s + (i.current_value ?? i.amount), 0);
-    const pnl = totalValue - totalInvested;
-    const pnlPercent = totalInvested > 0 ? ((pnl / totalInvested) * 100).toFixed(2) : "0.00";
+    const totalInvestmentValue = investments.reduce((s, i) => s + (i.current_value ?? i.amount), 0);
+    const investmentReturns = investments.reduce((s, i) => s + (i.total_return ?? 0), 0);
+    
+    // Total P&L = Investment returns + Admin-given profits
+    const totalPnL = investmentReturns + userProfit;
+    const pnlPercent = totalInvested > 0 ? ((investmentReturns / totalInvested) * 100).toFixed(2) : "0.00";
+    
+    // Portfolio Value = Available Balance + Current Investment Value + Total P&L
+    const portfolioValue = availableBalance + totalInvestmentValue + userProfit;
 
     let bestPlanName = "—";
     let bestReturn = -Infinity;
@@ -64,23 +76,31 @@ const Dashboard = () => {
       }
     }
 
-    return { totalInvested, totalValue, pnl, pnlPercent, bestPlanName, bestReturn };
-  }, [investments]);
+    return { 
+      totalInvested, 
+      totalInvestmentValue, 
+      portfolioValue, 
+      totalPnL, 
+      pnlPercent, 
+      bestPlanName, 
+      bestReturn 
+    };
+  }, [investments, availableBalance, userProfit]);
 
   const statCards = [
     {
       label: t("dashboard.portfolioValue"),
-      value: `$${stats.totalValue.toLocaleString("en-US", { minimumFractionDigits: 2 })}`,
+      value: `$${stats.portfolioValue.toLocaleString("en-US", { minimumFractionDigits: 2 })}`,
       sub: t("dashboard.invested", { amount: stats.totalInvested.toLocaleString("en-US", { minimumFractionDigits: 2 }) }),
       icon: TrendingUp,
       positive: true,
     },
     {
       label: t("dashboard.totalPnl"),
-      value: `${stats.pnl >= 0 ? "+" : "-"}$${Math.abs(stats.pnl).toLocaleString("en-US", { minimumFractionDigits: 2 })}`,
-      sub: t("dashboard.allTime", { percent: `${stats.pnl >= 0 ? "+" : ""}${stats.pnlPercent}` }),
-      icon: stats.pnl >= 0 ? ArrowUpRight : ArrowDownRight,
-      positive: stats.pnl >= 0,
+      value: `${stats.totalPnL >= 0 ? "+" : "-"}$${Math.abs(stats.totalPnL).toLocaleString("en-US", { minimumFractionDigits: 2 })}`,
+      sub: t("dashboard.allTime", { percent: `${stats.totalPnL >= 0 ? "+" : ""}${stats.pnlPercent}` }),
+      icon: stats.totalPnL >= 0 ? ArrowUpRight : ArrowDownRight,
+      positive: stats.totalPnL >= 0,
     },
     {
       label: "Available Balance",

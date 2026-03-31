@@ -12,9 +12,12 @@ const RecentActivity = ({ transactions }: RecentActivityProps) => {
 
   const typeLabels: Record<string, string> = {
     deposit: t("activity.deposit"),
+    admin_deposit: t("activity.deposit"),
+    profit: "Profit",
     withdrawal: t("activity.withdrawal"),
     investment: t("activity.investment"),
     return: t("activity.return"),
+    refund: "Refund",
     fee: t("activity.fee"),
   };
 
@@ -30,7 +33,7 @@ const RecentActivity = ({ transactions }: RecentActivityProps) => {
       ) : (
         <div className="space-y-3">
           {transactions.slice(0, 5).map((tx) => {
-            const isIncome = tx.type === "deposit" || tx.type === "return";
+            const isIncome = tx.type === "deposit" || tx.type === "admin_deposit" || tx.type === "profit" || tx.type === "return" || tx.type === "refund";
             const amount = Number(tx.amount);
             const formattedAmount = `${isIncome ? "+" : "-"}$${Math.abs(amount).toLocaleString("en-US", { minimumFractionDigits: 2 })}`;
             const formattedDate = new Date(tx.created_at).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });

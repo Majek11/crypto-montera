@@ -3,9 +3,10 @@
 -- Run this in Supabase SQL Editor
 -- =============================================
 
--- ─── Step 1: Add balance column to profiles ───────────────────────────────────
+-- ─── Step 1: Add balance and profit columns to profiles ───────────────────────────────────
 
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS balance DECIMAL(20,2) NOT NULL DEFAULT 0;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS profit DECIMAL(20,2) NOT NULL DEFAULT 0;
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS referral_code TEXT;
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS referred_by TEXT;
 
@@ -196,3 +197,299 @@ END $$;
 
 GRANT SELECT ON public.referrals TO authenticated;
 GRANT EXECUTE ON FUNCTION public.generate_referral_code() TO authenticated;
+
+-- ─── Step 9: Enhanced Trigger for Profit/Balance Separation ───────────────────
+
+-- Drop and recreate the trigger function with profit support
+DROP TRIGGER IF EXISTS on_balance_transaction_change ON public.transactions;
+DROP FUNCTION IF EXISTS public.handle_balance_on_transaction();
+
+CREATE OR REPLACE FUNCTION public.handle_balance_on_transaction()
+RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $
+BEGIN
+  IF OLD.status = NEW.status THEN RETURN NEW; END IF;
+
+  -- Regular deposit confirmed → credit balance
+  IF NEW.type = 'deposit' AND NEW.status = 'completed' AND OLD.status <> 'completed' THEN
+    UPDATE public.profiles SET balance = balance + NEW.amount WHERE user_id = NEW.user_id;
+  END IF;
+
+  -- Admin deposit confirmed → credit balance
+  IF NEW.type = 'admin_deposit' AND NEW.status = 'completed' AND OLD.status <> 'completed' THEN
+    UPDATE public.profiles SET balance = balance + NEW.amount WHERE user_id = NEW.user_id;
+  END IF;
+
+  -- Profit confirmed → credit profit
+  IF NEW.type = 'profit' AND NEW.status = 'completed' AND OLD.status <> 'completed' THEN
+    UPDATE public.profiles SET profit = profit + NEW.amount WHERE user_id = NEW.user_id;
+  END IF;
+
+  -- Return confirmed → credit profit
+  IF NEW.type = 'return' AND NEW.status = 'completed' AND OLD.status <> 'completed' THEN
+    UPDATE public.profiles SET profit = profit + NEW.amount WHERE user_id = NEW.user_id;
+  END IF;
+
+  -- Withdrawal confirmed → nothing (already deducted at request time)
+  -- Withdrawal failed → refund to appropriate account
+  IF NEW.type = 'withdrawal' AND NEW.status = 'failed' AND OLD.status <> 'failed' THEN
+    -- For now, refund to balance (could be enhanced to track source)
+    UPDATE public.profiles SET balance = balance + NEW.amount WHERE user_id = NEW.user_id;
+  END IF;
+
+  RETURN NEW;
+END;
+$;
+
+-- Recreate the trigger
+CREATE TRIGGER on_balance_transaction_change
+  AFTER UPDATE ON public.transactions
+  FOR EACH ROW EXECUTE FUNCTION public.handle_balance_on_transaction();
+
+-- ─── Step 10: Withdrawal Processing Function ──────────────────────────────────
+
+CREATE OR REPLACE FUNCTION public.process_withdrawal(
+  p_user_id UUID,
+  p_amount DECIMAL,
+  p_source TEXT DEFAULT 'balance_first' -- 'balance_first', 'profit_first'
+)
+RETURNS JSON
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $
+DECLARE
+  v_balance DECIMAL;
+  v_profit DECIMAL;
+  v_total_available DECIMAL;
+  v_from_balance DECIMAL := 0;
+  v_from_profit DECIMAL := 0;
+BEGIN
+  -- Get current balances
+  SELECT balance, profit INTO v_balance, v_profit 
+  FROM public.profiles 
+  WHERE user_id = p_user_id;
+
+  v_total_available := v_balance + v_profit;
+
+  -- Check if sufficient funds
+  IF p_amount > v_total_available THEN
+    RETURN json_build_object(
+      'error', 
+      'Insufficient funds. Available: $' || ROUND(v_total_available, 2)
+    );
+  END IF;
+
+  -- Calculate withdrawal breakdown based on source preference
+  IF p_source = 'balance_first' THEN
+    v_from_balance := LEAST(p_amount, v_balance);
+    v_from_profit := p_amount - v_from_balance;
+  ELSIF p_source = 'profit_first' THEN
+    v_from_profit := LEAST(p_amount, v_profit);
+    v_from_balance := p_amount - v_from_profit;
+  END IF;
+
+  -- Update balances
+  UPDATE public.profiles 
+  SET 
+    balance = balance - v_from_balance,
+    profit = profit - v_from_profit
+  WHERE user_id = p_user_id;
+
+  -- Create withdrawal transaction
+  INSERT INTO public.transactions (user_id, type, amount, currency, status, description)
+  VALUES (
+    p_user_id, 
+    'withdrawal', 
+    p_amount, 
+    'USD', 
+    'completed', 
+    'Withdrawal processed (Balance: $' || v_from_balance || ', Profit: $' || v_from_profit || ')'
+  );
+
+  RETURN json_build_object(
+    'success', true,
+    'amount', p_amount,
+    'from_balance', v_from_balance,
+    'from_profit', v_from_profit
+  );
+END;
+$;
+
+GRANT EXECUTE ON FUNCTION public.process_withdrawal(UUID, DECIMAL, TEXT) TO authenticated;
+
+-- ─── Step 11: Manual Investment Management Functions ─────────────────────────
+
+-- Function for admins to manually mature investments and add profits
+CREATE OR REPLACE FUNCTION public.admin_mature_investment(
+  p_investment_id UUID,
+  p_profit_amount DECIMAL DEFAULT NULL -- Optional: override calculated profit
+)
+RETURNS JSON
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $
+DECLARE
+  investment_record RECORD;
+  calculated_profit DECIMAL;
+  final_profit DECIMAL;
+  total_return DECIMAL;
+BEGIN
+  -- Get investment details with plan info
+  SELECT i.*, p.expected_return_min, p.name as plan_name
+  INTO investment_record
+  FROM public.investments i
+  JOIN public.investment_plans p ON i.plan_id = p.id
+  WHERE i.id = p_investment_id AND i.status = 'active';
+  
+  IF NOT FOUND THEN
+    RETURN json_build_object('error', 'Investment not found or not active');
+  END IF;
+  
+  -- Calculate profit (admin can override)
+  calculated_profit := investment_record.amount * (investment_record.expected_return_min / 100.0);
+  final_profit := COALESCE(p_profit_amount, calculated_profit);
+  total_return := investment_record.amount + final_profit;
+  
+  -- Update investment status and add profit
+  UPDATE public.investments 
+  SET 
+    status = 'completed',
+    current_value = total_return,
+    total_return = final_profit,
+    updated_at = NOW()
+  WHERE id = p_investment_id;
+  
+  -- Add profit to user's profit balance (not regular balance)
+  UPDATE public.profiles 
+  SET profit = profit + final_profit
+  WHERE user_id = investment_record.user_id;
+  
+  -- Refund original investment to balance
+  UPDATE public.profiles 
+  SET balance = balance + investment_record.amount
+  WHERE user_id = investment_record.user_id;
+  
+  -- Create profit transaction record
+  INSERT INTO public.transactions (
+    user_id, 
+    type, 
+    amount, 
+    currency, 
+    status, 
+    description, 
+    investment_id
+  ) VALUES (
+    investment_record.user_id,
+    'return',
+    final_profit,
+    'USD',
+    'completed',
+    'Investment profit from ' || investment_record.plan_name || ' (Admin processed)',
+    p_investment_id
+  );
+  
+  -- Send notification to user
+  INSERT INTO public.notifications (
+    user_id,
+    title,
+    message,
+    type
+  ) VALUES (
+    investment_record.user_id,
+    '🎉 Investment Completed!',
+    'Your investment has been processed. Profit: $' || final_profit::text || ' has been added to your account.',
+    'success'
+  );
+  
+  RETURN json_build_object(
+    'success', true,
+    'investment_id', p_investment_id,
+    'original_amount', investment_record.amount,
+    'profit_added', final_profit,
+    'total_return', total_return
+  );
+END;
+$;
+
+-- Function for admins to cancel investments and refund
+CREATE OR REPLACE FUNCTION public.admin_cancel_investment(
+  p_investment_id UUID,
+  p_reason TEXT DEFAULT 'Investment cancelled by admin'
+)
+RETURNS JSON
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $
+DECLARE
+  investment_record RECORD;
+BEGIN
+  -- Get investment details
+  SELECT * INTO investment_record
+  FROM public.investments
+  WHERE id = p_investment_id AND status = 'active';
+  
+  IF NOT FOUND THEN
+    RETURN json_build_object('error', 'Investment not found or not active');
+  END IF;
+  
+  -- Update investment status
+  UPDATE public.investments 
+  SET 
+    status = 'cancelled',
+    updated_at = NOW()
+  WHERE id = p_investment_id;
+  
+  -- Refund original amount to balance (no profit)
+  UPDATE public.profiles 
+  SET balance = balance + investment_record.amount
+  WHERE user_id = investment_record.user_id;
+  
+  -- Create refund transaction record
+  INSERT INTO public.transactions (
+    user_id, 
+    type, 
+    amount, 
+    currency, 
+    status, 
+    description, 
+    investment_id
+  ) VALUES (
+    investment_record.user_id,
+    'refund',
+    investment_record.amount,
+    'USD',
+    'completed',
+    p_reason,
+    p_investment_id
+  );
+  
+  -- Send notification to user
+  INSERT INTO public.notifications (
+    user_id,
+    title,
+    message,
+    type
+  ) VALUES (
+    investment_record.user_id,
+    '⚠️ Investment Cancelled',
+    'Your investment has been cancelled. $' || investment_record.amount::text || ' has been refunded to your balance. Reason: ' || p_reason,
+    'warning'
+  );
+  
+  RETURN json_build_object(
+    'success', true,
+    'investment_id', p_investment_id,
+    'refunded_amount', investment_record.amount,
+    'reason', p_reason
+  );
+END;
+$;
+
+-- Grant execute permissions to authenticated users (admin check should be done in application)
+GRANT EXECUTE ON FUNCTION public.admin_mature_investment(UUID, DECIMAL) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.admin_cancel_investment(UUID, TEXT) TO authenticated;
+
+-- Note: These functions should only be called by admin users. 
+-- The application should verify admin permissions before calling these functions.

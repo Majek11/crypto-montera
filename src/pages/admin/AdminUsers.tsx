@@ -43,13 +43,14 @@ const AdminUsers = () => {
   const [actionLoading, setActionLoading] = useState(false);
 
   // Credit wallet state
-  const [creditDialog, setCreditDialog] = useState<{ open: boolean; user: any | null }>({
-    open: false, user: null,
+  const [creditDialog, setCreditDialog] = useState<{ open: boolean; user: any | null; type: 'balance' | 'profit' }>({
+    open: false, user: null, type: 'balance',
   });
   const [creditAmount, setCreditAmount] = useState("");
   const [creditNote, setCreditNote] = useState("");
   const [creditSubmitting, setCreditSubmitting] = useState(false);
   const [creditUserBalance, setCreditUserBalance] = useState<number | null>(null);
+  const [creditUserProfit, setCreditUserProfit] = useState<number | null>(null);
   const [loadingCreditBalance, setLoadingCreditBalance] = useState(false);
 
   const fetchUsers = async () => {
@@ -84,19 +85,21 @@ const AdminUsers = () => {
     navigate("/dashboard");
   };
 
-  const openCreditDialog = async (user: any) => {
+  const openCreditDialog = async (user: any, type: 'balance' | 'profit') => {
     setCreditAmount("");
     setCreditNote("");
     setCreditUserBalance(null);
-    setCreditDialog({ open: true, user });
+    setCreditUserProfit(null);
+    setCreditDialog({ open: true, user, type });
     setLoadingCreditBalance(true);
-    // Fetch the latest balance from the profiles table directly
+    // Fetch the latest balance and profit from the profiles table directly
     const { data } = await supabase
       .from("profiles")
-      .select("balance")
+      .select("balance, profit")
       .eq("user_id", user.user_id)
       .single();
     setCreditUserBalance(data ? Number(data.balance) : 0);
+    setCreditUserProfit(data ? Number(data.profit) : 0);
     setLoadingCreditBalance(false);
   };
 
@@ -107,17 +110,19 @@ const AdminUsers = () => {
     }
     setCreditSubmitting(true);
     const amountNum = Number(creditAmount);
-    const description = creditNote.trim() || "💳 Admin Wallet Credit";
+    const isProfit = creditDialog.type === 'profit';
+    const transactionType = isProfit ? 'return' : 'deposit';
+    const description = creditNote.trim() || (isProfit ? "💰 Admin Profit Credit" : "💳 Admin Balance Credit");
 
-    // Insert a completed deposit transaction — the DB trigger will update profiles.balance
+    // Insert the appropriate transaction type
     const { error: txError } = await supabase.from("transactions").insert({
       user_id: creditDialog.user.user_id,
-      type: "deposit",
+      type: transactionType,
       amount: amountNum,
       currency: "USD",
       status: "completed",
       description,
-      reference: `admin-credit-${Date.now()}`,
+      reference: `admin-${isProfit ? 'profit' : 'deposit'}-${Date.now()}`,
     });
 
     if (txError) {
@@ -126,26 +131,27 @@ const AdminUsers = () => {
       return;
     }
 
-    // Also directly update balance in case trigger is not yet applied
+    // Also directly update the appropriate field in case trigger is not yet applied
+    const updateField = isProfit ? 'profit' : 'balance';
+    const currentValue = isProfit ? (creditUserProfit ?? 0) : (creditUserBalance ?? 0);
+    
     await supabase
       .from("profiles")
-      .update({ balance: (creditUserBalance ?? 0) + amountNum })
+      .update({ [updateField]: currentValue + amountNum })
       .eq("user_id", creditDialog.user.user_id);
 
     // Send in-app notification to the user
     await supabase.from("notifications").insert({
       user_id: creditDialog.user.user_id,
-      title: "💳 Wallet Credited",
-      message: `$${amountNum.toLocaleString("en-US", { minimumFractionDigits: 2 })} has been credited to your wallet.${creditNote.trim() ? ` Note: ${creditNote.trim()}` : ""
-        }`,
+      title: isProfit ? "💰 Profit Added" : "💳 Balance Credited",
+      message: `$${amountNum.toLocaleString("en-US", { minimumFractionDigits: 2 })} has been ${isProfit ? 'added to your profit' : 'credited to your balance'}.${creditNote.trim() ? ` Note: ${creditNote.trim()}` : ""}`,
       type: "success",
     });
 
     toast.success(
-      `$${amountNum.toLocaleString("en-US", { minimumFractionDigits: 2 })} credited to ${creditDialog.user.display_name || creditDialog.user.email
-      }`
+      `$${amountNum.toLocaleString("en-US", { minimumFractionDigits: 2 })} ${isProfit ? 'profit added to' : 'balance credited to'} ${creditDialog.user.display_name || creditDialog.user.email}`
     );
-    setCreditDialog({ open: false, user: null });
+    setCreditDialog({ open: false, user: null, type: 'balance' });
     fetchUsers();
     setCreditSubmitting(false);
   };
@@ -213,28 +219,28 @@ const AdminUsers = () => {
 
   return (
     <AdminLayout>
-      <div className="p-6 lg:p-8 max-w-7xl mx-auto">
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="flex items-center justify-between mb-6">
+      <div className="p-3 sm:p-6 lg:p-8 max-w-7xl mx-auto">
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 sm:mb-6 gap-2 sm:gap-0">
           <div>
-            <h1 className="font-heading font-bold text-3xl text-foreground mb-1">User Management</h1>
-            <p className="font-body text-sm text-muted-foreground">
+            <h1 className="font-heading font-bold text-2xl sm:text-3xl text-foreground mb-1">User Management</h1>
+            <p className="font-body text-xs sm:text-sm text-muted-foreground">
               {users.length} total · {users.filter((u) => (u.status || "active") === "active").length} active · {users.filter((u) => u.status === "suspended").length} suspended
             </p>
           </div>
         </motion.div>
 
         {/* Filters */}
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="flex flex-col sm:flex-row gap-4 mb-6">
-          <div className="relative max-w-sm flex-1">
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="flex flex-col sm:flex-row gap-3 sm:gap-4 mb-4 sm:mb-6">
+          <div className="relative flex-1 max-w-full sm:max-w-sm">
             <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-            <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search users..." className="pl-9 bg-input border-border text-foreground" />
+            <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search users..." className="pl-9 bg-input border-border text-foreground w-full" />
           </div>
           <div className="flex gap-1 flex-wrap">
             {statusFilters.map((f) => (
               <button
                 key={f}
                 onClick={() => setStatusFilter(f)}
-                className={`px-3 py-1.5 rounded-pill text-xs font-body font-medium transition-all ${statusFilter === f ? "bg-accent-dim text-primary" : "text-muted-foreground hover:text-foreground bg-secondary"
+                className={`px-2 sm:px-3 py-1.5 rounded-pill text-xs font-body font-medium transition-all ${statusFilter === f ? "bg-accent-dim text-primary" : "text-muted-foreground hover:text-foreground bg-secondary"
                   }`}
               >
                 {f}
@@ -313,8 +319,11 @@ const AdminUsers = () => {
                             <DropdownMenuItem onClick={() => { setDetailUser(u); setDetailOpen(true); }} className="gap-2 text-sm">
                               <Eye size={14} /> View Details
                             </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => openCreditDialog(u)} className="gap-2 text-sm text-emerald-400">
-                              <Wallet size={14} /> Credit Wallet
+                            <DropdownMenuItem onClick={() => openCreditDialog(u, 'balance')} className="gap-2 text-sm text-blue-400">
+                              <Wallet size={14} /> Credit Balance
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => openCreditDialog(u, 'profit')} className="gap-2 text-sm text-emerald-400">
+                              <DollarSign size={14} /> Add Profit
                             </DropdownMenuItem>
                             <DropdownMenuItem onClick={() => loginAsUser(u)} className="gap-2 text-sm text-blue-400">
                               <LogIn size={14} /> Login as User
@@ -468,56 +477,89 @@ const AdminUsers = () => {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50"
-              onClick={() => { if (!creditSubmitting) setCreditDialog({ open: false, user: null }); }}
+              onClick={() => { if (!creditSubmitting) setCreditDialog({ open: false, user: null, type: 'balance' }); }}
             />
             <motion.div
               initial={{ opacity: 0, scale: 0.96, y: -10 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.96, y: -10 }}
               transition={{ type: "spring", stiffness: 320, damping: 28 }}
-              className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md z-50 px-4"
+              className="fixed inset-0 flex items-center justify-center z-50 p-4 sm:p-6"
             >
-              <div className="bg-card border border-emerald-500/20 rounded-xl p-6 shadow-2xl shadow-black/40">
+              <div className="w-full max-w-sm sm:max-w-md lg:max-w-lg max-h-[90vh] overflow-y-auto">
+                <div className="bg-card border border-emerald-500/20 rounded-xl p-4 sm:p-6 shadow-2xl shadow-black/40">
                 {/* Header */}
-                <div className="flex items-center gap-3 mb-5">
-                  <div className="w-11 h-11 rounded-xl bg-emerald-400/10 flex items-center justify-center border border-emerald-400/20">
-                    <Wallet size={20} className="text-emerald-400" />
+                <div className="flex items-center gap-2 sm:gap-3 mb-4 sm:mb-5">
+                  <div className={`w-9 h-9 sm:w-11 sm:h-11 rounded-xl flex items-center justify-center border ${
+                    creditDialog.type === 'profit' 
+                      ? 'bg-emerald-400/10 border-emerald-400/20' 
+                      : 'bg-blue-400/10 border-blue-400/20'
+                  }`}>
+                    {creditDialog.type === 'profit' ? (
+                      <DollarSign size={16} className="text-emerald-400 sm:w-5 sm:h-5" />
+                    ) : (
+                      <Wallet size={16} className="text-blue-400 sm:w-5 sm:h-5" />
+                    )}
                   </div>
-                  <div>
-                    <h2 className="font-heading font-bold text-lg text-foreground">Credit Wallet</h2>
-                    <p className="font-body text-xs text-muted-foreground">
+                  <div className="flex-1 min-w-0">
+                    <h2 className="font-heading font-bold text-base sm:text-lg text-foreground truncate">
+                      {creditDialog.type === 'profit' ? 'Add Profit' : 'Credit Balance'}
+                    </h2>
+                    <p className="font-body text-xs text-muted-foreground truncate">
                       For: <span className="text-foreground font-medium">{creditDialog.user.display_name || creditDialog.user.email}</span>
                     </p>
                   </div>
                 </div>
 
-                {/* Current balance */}
-                <div className="bg-secondary border border-border rounded-xl px-4 py-3 mb-5 flex items-center justify-between">
-                  <div>
-                    <p className="font-body text-xs text-muted-foreground">Current Balance</p>
-                    <p className="font-body text-xs text-muted-foreground/60 mt-0.5">Before credit</p>
+                {/* Current balances */}
+                <div className="bg-secondary border border-border rounded-xl px-3 sm:px-4 py-2 sm:py-3 mb-4 sm:mb-5 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="font-body text-xs text-muted-foreground">Available Balance</p>
+                    </div>
+                    {loadingCreditBalance ? (
+                      <Loader2 size={14} className="animate-spin text-muted-foreground sm:w-4 sm:h-4" />
+                    ) : (
+                      <p className="font-mono text-xs sm:text-sm font-bold text-foreground">
+                        ${(creditUserBalance ?? 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </p>
+                    )}
                   </div>
-                  {loadingCreditBalance ? (
-                    <Loader2 size={16} className="animate-spin text-muted-foreground" />
-                  ) : (
-                    <p className="font-mono text-xl font-bold text-foreground">
-                      ${(creditUserBalance ?? 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                    </p>
-                  )}
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="font-body text-xs text-muted-foreground">Current Profit</p>
+                    </div>
+                    {loadingCreditBalance ? (
+                      <Loader2 size={14} className="animate-spin text-muted-foreground sm:w-4 sm:h-4" />
+                    ) : (
+                      <p className="font-mono text-xs sm:text-sm font-bold text-emerald-400">
+                        ${(creditUserProfit ?? 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </p>
+                    )}
+                  </div>
                 </div>
 
                 {/* Info banner */}
-                <div className="p-3 rounded-lg mb-5 text-xs font-body bg-emerald-400/5 border border-emerald-400/20 text-emerald-400">
-                  💳 The amount will be credited instantly as a completed deposit and the user will be notified.
+                <div className={`p-2 sm:p-3 rounded-lg mb-4 sm:mb-5 text-xs font-body border ${
+                  creditDialog.type === 'profit'
+                    ? 'bg-emerald-400/5 border-emerald-400/20 text-emerald-400'
+                    : 'bg-blue-400/5 border-blue-400/20 text-blue-400'
+                }`}>
+                  <p className="leading-relaxed">
+                    {creditDialog.type === 'profit' 
+                      ? '💰 This amount will be added to the user\'s profit (shows in Total P&L).'
+                      : '💳 This amount will be added to the user\'s available balance (ready to invest).'
+                    }
+                  </p>
                 </div>
 
                 {/* Amount input */}
-                <div className="space-y-4">
+                <div className="space-y-3 sm:space-y-4">
                   <div>
                     <label className="font-body text-sm text-muted-foreground mb-1.5 block">Amount (USD)</label>
                     <div className="relative">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 font-mono text-sm text-muted-foreground">
-                        <DollarSign size={14} />
+                      <span className="absolute left-2 sm:left-3 top-1/2 -translate-y-1/2 font-mono text-sm text-muted-foreground">
+                        <DollarSign size={12} className="sm:w-3.5 sm:h-3.5" />
                       </span>
                       <input
                         id="credit-amount"
@@ -528,12 +570,16 @@ const AdminUsers = () => {
                         value={creditAmount}
                         onChange={(e) => setCreditAmount(e.target.value)}
                         autoFocus
-                        className="w-full h-10 pl-9 pr-3 rounded-md bg-input border border-border text-foreground font-mono text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400/40 focus:border-emerald-400/40 transition-all"
+                        className="w-full h-10 sm:h-11 pl-7 sm:pl-9 pr-3 rounded-md bg-input border border-border text-foreground font-mono text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400/40 focus:border-emerald-400/40 transition-all"
                       />
                     </div>
                     {creditAmount && !isNaN(Number(creditAmount)) && Number(creditAmount) > 0 && (
-                      <p className="font-body text-xs text-emerald-400 mt-1">
-                        New balance: ${((creditUserBalance ?? 0) + Number(creditAmount)).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      <p className={`font-body text-xs mt-1 ${
+                        creditDialog.type === 'profit' ? 'text-emerald-400' : 'text-blue-400'
+                      }`}>
+                        New {creditDialog.type === 'profit' ? 'profit' : 'balance'}: ${(
+                          (creditDialog.type === 'profit' ? (creditUserProfit ?? 0) : (creditUserBalance ?? 0)) + Number(creditAmount)
+                        ).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </p>
                     )}
                   </div>
@@ -550,26 +596,38 @@ const AdminUsers = () => {
                 </div>
 
                 {/* Actions */}
-                <div className="flex gap-3 mt-5">
+                <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 mt-4 sm:mt-5">
                   <button
-                    onClick={() => setCreditDialog({ open: false, user: null })}
+                    onClick={() => setCreditDialog({ open: false, user: null, type: 'balance' })}
                     disabled={creditSubmitting}
-                    className="flex-1 h-10 rounded-lg border border-border text-foreground font-body text-sm hover:bg-secondary transition-colors disabled:opacity-50"
+                    className="w-full sm:flex-1 h-10 sm:h-11 rounded-lg border border-border text-foreground font-body text-sm hover:bg-secondary transition-colors disabled:opacity-50 order-2 sm:order-1"
                   >
                     Cancel
                   </button>
                   <button
                     onClick={handleCreditWallet}
                     disabled={creditSubmitting || !creditAmount || Number(creditAmount) <= 0}
-                    className="flex-1 h-10 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-white font-body text-sm font-medium gap-2 flex items-center justify-center transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                    className={`w-full sm:flex-1 h-10 sm:h-11 rounded-lg text-white font-body text-sm font-medium gap-2 flex items-center justify-center transition-colors disabled:opacity-40 disabled:cursor-not-allowed order-1 sm:order-2 ${
+                      creditDialog.type === 'profit'
+                        ? 'bg-emerald-500 hover:bg-emerald-400'
+                        : 'bg-blue-500 hover:bg-blue-400'
+                    }`}
                   >
                     {creditSubmitting ? (
                       <Loader2 size={14} className="animate-spin" />
+                    ) : creditDialog.type === 'profit' ? (
+                      <DollarSign size={14} />
                     ) : (
                       <Wallet size={14} />
                     )}
-                    {creditSubmitting ? "Crediting..." : `Credit $${Number(creditAmount) > 0 ? Number(creditAmount).toLocaleString("en-US", { minimumFractionDigits: 2 }) : "0.00"}`}
+                    <span className="truncate">
+                      {creditSubmitting 
+                        ? (creditDialog.type === 'profit' ? 'Adding...' : 'Crediting...') 
+                        : `${creditDialog.type === 'profit' ? 'Add' : 'Credit'} $${Number(creditAmount) > 0 ? Number(creditAmount).toLocaleString("en-US", { minimumFractionDigits: 2 }) : "0.00"}`
+                      }
+                    </span>
                   </button>
+                </div>
                 </div>
               </div>
             </motion.div>

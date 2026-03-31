@@ -346,7 +346,7 @@ const Deposit = () => {
                     <option value="">— Select a plan —</option>
                     {plans.map((p) => (
                       <option key={p.id} value={p.id}>
-                        {p.name} · Min ${p.min_investment.toLocaleString()}{p.min_investment >= ENTERPRISE_THRESHOLD ? "+" : ""} · {p.min_investment >= ENTERPRISE_THRESHOLD ? "Contact Us" : `${p.expected_return_min}–${p.expected_return_max}% return`}
+                        {p.name} · Min ${p.min_investment.toLocaleString()}{p.min_investment >= ENTERPRISE_THRESHOLD ? "+" : ""} · {p.min_investment >= ENTERPRISE_THRESHOLD ? "Contact Us" : `${p.expected_return_min === p.expected_return_max ? `${p.expected_return_min}%` : `${p.expected_return_min}–${p.expected_return_max}%`} profit`}
                       </option>
                     ))}
                   </select>
@@ -384,12 +384,12 @@ const Deposit = () => {
                           </div>
                           <div>
                             <p className="font-mono text-sm font-bold text-primary">
-                              {isEnterprise ? `${plan.expected_return_min}%+` : `${plan.expected_return_min}–${plan.expected_return_max}%`}
+                              {isEnterprise ? `${plan.expected_return_min}%+` : `${plan.expected_return_min === plan.expected_return_max ? `${plan.expected_return_min}%` : `${plan.expected_return_min}–${plan.expected_return_max}%`}`}
                             </p>
-                            <p className="font-body text-[10px] text-muted-foreground">Return</p>
+                            <p className="font-body text-[10px] text-muted-foreground">Profit</p>
                           </div>
                           <div>
-                            <p className="font-mono text-sm font-bold text-foreground">{plan.duration_days}d</p>
+                            <p className="font-mono text-sm font-bold text-foreground">{plan.duration_days === 1 ? '24h' : `${plan.duration_days}d`}</p>
                             <p className="font-body text-[10px] text-muted-foreground">Duration</p>
                           </div>
                         </div>

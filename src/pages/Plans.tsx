@@ -32,17 +32,25 @@ const riskColors: Record<string, string> = {
 };
 
 const getProgress = (inv: Investment) => {
-  if (!inv.ends_at) return { pct: 0, daysLeft: null, daysTotal: null, daysElapsed: 0 };
+  if (!inv.ends_at) return { pct: 0, timeLeft: null, timeTotal: null, timeElapsed: 0 };
   const now = Date.now();
   const start = new Date(inv.started_at).getTime();
   const end = new Date(inv.ends_at).getTime();
   const total = end - start;
   const elapsed = Math.min(now - start, total);
   const pct = total > 0 ? Math.min(100, (elapsed / total) * 100) : 0;
-  const daysLeft = Math.max(0, Math.ceil((end - now) / 86400000));
-  const daysTotal = Math.round(total / 86400000);
-  const daysElapsed = Math.round(elapsed / 86400000);
-  return { pct, daysLeft, daysTotal, daysElapsed };
+  
+  // Calculate time remaining
+  const msLeft = Math.max(0, end - now);
+  const hoursLeft = Math.floor(msLeft / (1000 * 60 * 60));
+  const minutesLeft = Math.floor((msLeft % (1000 * 60 * 60)) / (1000 * 60));
+  
+  // Format time display
+  const timeLeft = hoursLeft > 0 ? `${hoursLeft}h ${minutesLeft}m` : `${minutesLeft}m`;
+  const timeTotal = Math.round(total / (1000 * 60 * 60)); // Total hours
+  const timeElapsed = Math.round(elapsed / (1000 * 60 * 60)); // Elapsed hours
+  
+  return { pct, timeLeft: msLeft > 0 ? timeLeft : 'Completed', timeTotal, timeElapsed };
 };
 
 // ── Investment Modal ──────────────────────────────────────────────────────────
@@ -58,6 +66,26 @@ const InvestModal = ({ plan, balance, onClose, onSuccess }: InvestModalProps) =>
   const [amount, setAmount] = useState(String(plan.min_investment));
   const [submitting, setSubmitting] = useState(false);
 
+  // Override display values for UI
+  const getDisplayValues = (planName: string) => {
+    switch (planName.toLowerCase()) {
+      case 'shield':
+        return { profit: 5, duration: 1 };
+      case 'growth':
+        return { profit: 10, duration: 1 };
+      case 'accelerator':
+        return { profit: 15, duration: 1 };
+      case 'alpha':
+        return { profit: 20, duration: 1 };
+      case 'enterprise':
+        return { profit: 25, duration: 1 };
+      default:
+        return { profit: plan.expected_return_min, duration: plan.duration_days };
+    }
+  };
+
+  const displayValues = getDisplayValues(plan.name);
+
   const numAmount = Number(amount) || 0;
   const insufficient = numAmount > balance;
   const belowMin = numAmount < plan.min_investment;
@@ -66,13 +94,13 @@ const InvestModal = ({ plan, balance, onClose, onSuccess }: InvestModalProps) =>
 
   const handleInvest = async () => {
     setSubmitting(true);
-    const { data, error } = await supabase.rpc("create_investment", {
+    const { data, error } = await (supabase as any).rpc("create_investment", {
       p_plan_id: plan.id,
       p_amount: numAmount,
-    });
+    }) as { data: any; error: any };
 
-    if (error || data?.error) {
-      toast.error(data?.error || error?.message || "Investment failed");
+    if (error || (data && typeof data === 'object' && 'error' in data && data.error)) {
+      toast.error((data && typeof data === 'object' && 'error' in data && data.error) || error?.message || "Investment failed");
       setSubmitting(false);
       return;
     }
@@ -81,7 +109,7 @@ const InvestModal = ({ plan, balance, onClose, onSuccess }: InvestModalProps) =>
     const { data: invData } = await supabase
       .from("investments")
       .select("*, investment_plans(*)")
-      .eq("id", data.investment_id)
+      .eq("id", data && typeof data === 'object' && 'investment_id' in data ? data.investment_id : '')
       .single();
 
     toast.success(`🎉 Successfully invested $${numAmount.toLocaleString()} in ${plan.name}!`);
@@ -116,7 +144,7 @@ const InvestModal = ({ plan, balance, onClose, onSuccess }: InvestModalProps) =>
           </div>
           <div>
             <h3 className="font-heading font-bold text-lg text-foreground">{plan.name}</h3>
-            <p className="font-mono text-xs text-muted-foreground capitalize">{plan.risk_level} · {plan.duration_days} days · {plan.expected_return_min}–{plan.expected_return_max}% return</p>
+            <p className="font-mono text-xs text-muted-foreground capitalize">{plan.risk_level} · {displayValues.duration === 1 ? '24 hours' : `${displayValues.duration} days`} · {displayValues.profit}% profit</p>
           </div>
         </div>
 
@@ -197,14 +225,10 @@ const InvestModal = ({ plan, balance, onClose, onSuccess }: InvestModalProps) =>
         {/* Projected returns */}
         {canInvest && (
           <div className="bg-accent-dim/30 border border-primary/15 rounded-lg px-4 py-3 mb-5">
-            <p className="font-body text-xs text-muted-foreground mb-1">Projected returns after {plan.duration_days} days</p>
+            <p className="font-body text-xs text-muted-foreground mb-1">Projected profit after {displayValues.duration === 1 ? '24 hours' : `${displayValues.duration} days`}</p>
             <div className="flex justify-between">
-              <span className="font-mono text-xs text-muted-foreground">Min ({plan.expected_return_min}%)</span>
-              <span className="font-mono text-sm text-primary font-bold">+${(numAmount * plan.expected_return_min / 100).toLocaleString("en-US", { minimumFractionDigits: 2 })}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="font-mono text-xs text-muted-foreground">Max ({plan.expected_return_max}%)</span>
-              <span className="font-mono text-sm text-primary font-bold">+${(numAmount * plan.expected_return_max / 100).toLocaleString("en-US", { minimumFractionDigits: 2 })}</span>
+              <span className="font-mono text-xs text-muted-foreground">Guaranteed ({displayValues.profit}%)</span>
+              <span className="font-mono text-sm text-primary font-bold">+${(numAmount * displayValues.profit / 100).toLocaleString("en-US", { minimumFractionDigits: 2 })}</span>
             </div>
           </div>
         )}
@@ -288,6 +312,26 @@ const Plans = () => {
     const allocation = plan.allocation as Record<string, number> | null;
     const canAfford = balance >= plan.min_investment;
 
+    // Override display values for UI
+    const getDisplayValues = (planName: string) => {
+      switch (planName.toLowerCase()) {
+        case 'shield':
+          return { profit: 5, duration: 1, description: 'Low-risk entry plan for new investors. Steady, predictable returns to help you build a solid crypto foundation. 5% profit in 24 hours.' };
+        case 'growth':
+          return { profit: 10, duration: 1, description: 'Balanced portfolio targeting consistent mid-term growth through diversified crypto and DeFi positions. 10% profit in 24 hours.' };
+        case 'accelerator':
+          return { profit: 15, duration: 1, description: 'High-conviction positions in top-performing assets for investors ready to scale aggressively. 15% profit in 24 hours.' };
+        case 'alpha':
+          return { profit: 20, duration: 1, description: 'Premium strategy for serious capital — institutional-grade assets, deeper DeFi exposure, and outsized return potential. 20% profit in 24 hours.' };
+        case 'enterprise':
+          return { profit: 25, duration: 1, description: 'Exclusive dividend plan for enterprise clients. Daily 25% profit distribution for institutional-grade portfolios.' };
+        default:
+          return { profit: plan.expected_return_min, duration: plan.duration_days, description: plan.description };
+      }
+    };
+
+    const displayValues = getDisplayValues(plan.name);
+
     return (
       <motion.div
         key={plan.id}
@@ -310,7 +354,7 @@ const Plans = () => {
           </div>
         </div>
 
-        <p className="font-body text-sm text-muted-foreground mb-5 leading-relaxed">{plan.description}</p>
+        <p className="font-body text-sm text-muted-foreground mb-5 leading-relaxed">{displayValues.description}</p>
 
         <div className="grid grid-cols-3 gap-3 mb-5">
           <div>
@@ -318,12 +362,19 @@ const Plans = () => {
             <p className="font-mono text-sm text-foreground">${plan.min_investment.toLocaleString()}</p>
           </div>
           <div>
-            <p className="font-body text-xs text-muted-foreground mb-0.5 flex items-center gap-1"><TrendingUp size={10} />Returns</p>
-            <p className="font-mono text-sm text-primary">{plan.expected_return_min}–{plan.expected_return_max}%</p>
+            <p className="font-body text-xs text-muted-foreground mb-0.5 flex items-center gap-1"><DollarSign size={10} />Max</p>
+            <p className="font-mono text-sm text-foreground">{plan.max_investment ? `$${plan.max_investment.toLocaleString()}` : 'No limit'}</p>
           </div>
           <div>
+            <p className="font-body text-xs text-muted-foreground mb-0.5 flex items-center gap-1"><TrendingUp size={10} />Profit</p>
+            <p className="font-mono text-sm text-primary">{displayValues.profit}%</p>
+          </div>
+        </div>
+        
+        <div className="grid grid-cols-1 gap-3 mb-5">
+          <div>
             <p className="font-body text-xs text-muted-foreground mb-0.5 flex items-center gap-1"><Clock size={10} />Duration</p>
-            <p className="font-mono text-sm text-foreground">{plan.duration_days}d</p>
+            <p className="font-mono text-sm text-foreground">{displayValues.duration === 1 ? '24h' : `${displayValues.duration}d`}</p>
           </div>
         </div>
 
@@ -448,7 +499,7 @@ const Plans = () => {
                     const Icon = riskIcons[plan?.risk_level || "conservative"] || Shield;
                     const totalReturn = (inv.current_value || inv.amount) - inv.amount;
                     const returnPct = inv.amount > 0 ? ((totalReturn / inv.amount) * 100).toFixed(1) : "0.0";
-                    const { pct, daysLeft, daysTotal, daysElapsed } = getProgress(inv);
+                    const { pct, timeLeft, timeTotal, timeElapsed } = getProgress(inv);
 
                     return (
                       <motion.div key={inv.id} className="bg-card border border-primary/20 rounded-lg p-5" whileHover={{ y: -2 }}>
@@ -464,13 +515,13 @@ const Plans = () => {
                           <div><p className="font-body text-xs text-muted-foreground">Invested</p><p className="font-mono text-sm text-foreground">${inv.amount.toLocaleString()}</p></div>
                           <div><p className="font-body text-xs text-muted-foreground">Current Value</p><p className="font-mono text-sm text-foreground">${(inv.current_value || inv.amount).toLocaleString()}</p></div>
                           <div><p className="font-body text-xs text-muted-foreground">Return</p><p className={`font-mono text-sm ${totalReturn >= 0 ? "text-primary" : "text-destructive"}`}>{totalReturn >= 0 ? "+" : ""}${totalReturn.toFixed(2)} ({returnPct}%)</p></div>
-                          {daysLeft !== null && <div><p className="font-body text-xs text-muted-foreground flex items-center gap-1"><CalendarClock size={10} />Matures In</p><p className="font-mono text-sm text-foreground">{daysLeft}d left</p></div>}
+                          {timeLeft && <div><p className="font-body text-xs text-muted-foreground flex items-center gap-1"><CalendarClock size={10} />Status</p><p className="font-mono text-sm text-foreground">{timeLeft}</p></div>}
                         </div>
-                        {daysTotal && (
+                        {timeTotal && (
                           <div>
                             <div className="flex justify-between items-center mb-1.5">
                               <span className="font-body text-[10px] text-muted-foreground flex items-center gap-1"><Target size={9} />Progress</span>
-                              <span className="font-mono text-[10px] text-muted-foreground">Day {daysElapsed} / {daysTotal}</span>
+                              <span className="font-mono text-[10px] text-muted-foreground">{timeElapsed}h / {timeTotal}h</span>
                             </div>
                             <div className="w-full h-1.5 bg-secondary rounded-full overflow-hidden">
                               <motion.div className="h-full bg-primary rounded-full" initial={{ width: 0 }} animate={{ width: `${pct}%` }} transition={{ duration: 0.8, ease: "easeOut" }} />
