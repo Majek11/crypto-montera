@@ -92,14 +92,35 @@ const AdminUsers = () => {
     setCreditUserProfit(null);
     setCreditDialog({ open: true, user, type });
     setLoadingCreditBalance(true);
-    // Fetch the latest balance and profit from the profiles table directly
-    const { data } = await supabase
-      .from("profiles")
-      .select("balance, profit")
-      .eq("user_id", user.user_id)
-      .single();
-    setCreditUserBalance(data ? Number(data.balance) : 0);
-    setCreditUserProfit(data ? Number(data.profit) : 0);
+    
+    // Try to fetch balance and profit, with fallback if profit column doesn't exist
+    try {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("balance, profit")
+        .eq("user_id", user.user_id)
+        .single();
+      
+      if (data) {
+        setCreditUserBalance(Number(data.balance) || 0);
+        setCreditUserProfit(Number(data.profit) || 0);
+      } else if (error && error.code === '42703') {
+        // Profit column doesn't exist, just get balance
+        const { data: balanceData } = await supabase
+          .from("profiles")
+          .select("balance")
+          .eq("user_id", user.user_id)
+          .single();
+        
+        setCreditUserBalance(balanceData ? Number(balanceData.balance) : 0);
+        setCreditUserProfit(0); // No profit column yet
+      }
+    } catch (err) {
+      console.error("Error fetching user balance:", err);
+      setCreditUserBalance(0);
+      setCreditUserProfit(0);
+    }
+    
     setLoadingCreditBalance(false);
   };
 
@@ -140,15 +161,23 @@ const AdminUsers = () => {
       .update({ [updateField]: currentValue + amountNum })
       .eq("user_id", creditDialog.user.user_id);
 
-    // If profit column doesn't exist, add to balance instead
+    // If profit column doesn't exist, add to balance instead but keep transaction as 'return'
     if (profileError && profileError.code === '42703' && isProfit) {
-      toast.error("Profit column not set up yet. Adding to balance instead.");
-      await supabase
+      console.log("Profit column doesn't exist, adding to balance but keeping as profit transaction");
+      const { error: balanceError } = await supabase
         .from("profiles")
         .update({ balance: (creditUserBalance ?? 0) + amountNum })
         .eq("user_id", creditDialog.user.user_id);
+      
+      if (balanceError) {
+        toast.error("Failed to update balance: " + balanceError.message);
+        setCreditSubmitting(false);
+        return;
+      }
     } else if (profileError) {
       toast.error("Failed to update profile: " + profileError.message);
+      setCreditSubmitting(false);
+      return;
     }
 
     // Send in-app notification to the user

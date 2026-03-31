@@ -34,32 +34,64 @@ const Dashboard = () => {
   const [availableBalance, setAvailableBalance] = useState(0);
   const [userProfit, setUserProfit] = useState(0);
   const [kycStatus, setKycStatus] = useState<string | null>(null);
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  // Function to refresh balances
+  const refreshBalances = () => {
+    setRefreshKey(prev => prev + 1);
+  };
 
   useEffect(() => {
     if (!effectiveUid) return;
-    supabase.from("profiles").select("balance, profit").eq("user_id", effectiveUid).single()
-      .then(({ data, error }) => { 
+    
+    const fetchBalanceAndProfit = async () => {
+      try {
+        // Try to get balance and profit from profiles
+        const { data, error } = await supabase
+          .from("profiles")
+          .select("balance, profit")
+          .eq("user_id", effectiveUid)
+          .single();
+        
         if (data) {
-          setAvailableBalance(Number((data as any).balance) || 0);
-          setUserProfit(Number((data as any).profit) || 0);
+          setAvailableBalance(Number(data.balance) || 0);
+          setUserProfit(Number(data.profit) || 0);
         } else if (error && error.code === '42703') {
-          // Profit column doesn't exist, just get balance
-          supabase.from("profiles").select("balance").eq("user_id", effectiveUid).single()
-            .then(({ data: balanceData }) => {
-              if (balanceData) {
-                setAvailableBalance(Number((balanceData as any).balance) || 0);
-                setUserProfit(0); // No profit column yet
-              }
-            });
+          // Profit column doesn't exist, get balance and calculate profit from transactions
+          const { data: balanceData } = await supabase
+            .from("profiles")
+            .select("balance")
+            .eq("user_id", effectiveUid)
+            .single();
+          
+          setAvailableBalance(balanceData ? Number(balanceData.balance) : 0);
+          
+          // Calculate profit from transactions
+          const { data: profitTxs } = await supabase
+            .from("transactions")
+            .select("amount")
+            .eq("user_id", effectiveUid)
+            .eq("status", "completed")
+            .in("type", ["return", "profit"]);
+          
+          const calculatedProfit = profitTxs ? profitTxs.reduce((sum, tx) => sum + Number(tx.amount), 0) : 0;
+          setUserProfit(calculatedProfit);
         }
-      });
+      } catch (err) {
+        console.error("Error fetching balance and profit:", err);
+        setAvailableBalance(0);
+        setUserProfit(0);
+      }
+    };
+    
+    fetchBalanceAndProfit();
     supabase.from("kyc_verifications")
       .select("status")
       .eq("user_id", effectiveUid)
       .order("created_at", { ascending: false })
       .limit(1).maybeSingle()
       .then(({ data }) => setKycStatus((data as any)?.status || "pending"));
-  }, [effectiveUid]);
+  }, [effectiveUid, refreshKey]);
 
   const loading = invLoading || txLoading;
 
