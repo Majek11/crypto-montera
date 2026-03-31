@@ -135,10 +135,21 @@ const AdminUsers = () => {
     const updateField = isProfit ? 'profit' : 'balance';
     const currentValue = isProfit ? (creditUserProfit ?? 0) : (creditUserBalance ?? 0);
     
-    await supabase
+    const { error: profileError } = await supabase
       .from("profiles")
       .update({ [updateField]: currentValue + amountNum })
       .eq("user_id", creditDialog.user.user_id);
+
+    // If profit column doesn't exist, add to balance instead
+    if (profileError && profileError.code === '42703' && isProfit) {
+      toast.error("Profit column not set up yet. Adding to balance instead.");
+      await supabase
+        .from("profiles")
+        .update({ balance: (creditUserBalance ?? 0) + amountNum })
+        .eq("user_id", creditDialog.user.user_id);
+    } else if (profileError) {
+      toast.error("Failed to update profile: " + profileError.message);
+    }
 
     // Send in-app notification to the user
     await supabase.from("notifications").insert({

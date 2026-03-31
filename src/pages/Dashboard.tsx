@@ -38,10 +38,19 @@ const Dashboard = () => {
   useEffect(() => {
     if (!effectiveUid) return;
     supabase.from("profiles").select("balance, profit").eq("user_id", effectiveUid).single()
-      .then(({ data }) => { 
+      .then(({ data, error }) => { 
         if (data) {
           setAvailableBalance(Number((data as any).balance) || 0);
           setUserProfit(Number((data as any).profit) || 0);
+        } else if (error && error.code === '42703') {
+          // Profit column doesn't exist, just get balance
+          supabase.from("profiles").select("balance").eq("user_id", effectiveUid).single()
+            .then(({ data: balanceData }) => {
+              if (balanceData) {
+                setAvailableBalance(Number((balanceData as any).balance) || 0);
+                setUserProfit(0); // No profit column yet
+              }
+            });
         }
       });
     supabase.from("kyc_verifications")
