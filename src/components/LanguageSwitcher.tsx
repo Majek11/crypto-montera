@@ -4,113 +4,118 @@ import { Globe, Check, ChevronUp } from "lucide-react";
 import { SUPPORTED_LANGUAGES } from "@/i18n";
 
 // Extended language list with Google Translate support
-const ALL_LANGUAGES = [
-  // Keep existing manual translations first (higher quality)
-  ...SUPPORTED_LANGUAGES,
-  
-  // Add Google Translate supported languages
-  { code: "af", label: "Afrikaans", flag: "🇿🇦", googleTranslate: true },
-  { code: "sq", label: "Albanian", flag: "🇦🇱", googleTranslate: true },
-  { code: "am", label: "Amharic", flag: "🇪🇹", googleTranslate: true },
-  { code: "hy", label: "Armenian", flag: "🇦🇲", googleTranslate: true },
-  { code: "az", label: "Azerbaijani", flag: "🇦🇿", googleTranslate: true },
-  { code: "eu", label: "Basque", flag: "🏴", googleTranslate: true },
-  { code: "be", label: "Belarusian", flag: "🇧🇾", googleTranslate: true },
-  { code: "bn", label: "Bengali", flag: "🇧🇩", googleTranslate: true },
-  { code: "bs", label: "Bosnian", flag: "🇧🇦", googleTranslate: true },
-  { code: "ca", label: "Catalan", flag: "🏴", googleTranslate: true },
-  { code: "ceb", label: "Cebuano", flag: "🇵🇭", googleTranslate: true },
-  { code: "ny", label: "Chichewa", flag: "🇲🇼", googleTranslate: true },
-  { code: "zh", label: "Chinese", flag: "🇨🇳", googleTranslate: true },
-  { code: "co", label: "Corsican", flag: "🇫🇷", googleTranslate: true },
-  { code: "eo", label: "Esperanto", flag: "🌍", googleTranslate: true },
-  { code: "et", label: "Estonian", flag: "🇪🇪", googleTranslate: true },
-  { code: "tl", label: "Filipino", flag: "🇵🇭", googleTranslate: true },
-  { code: "fy", label: "Frisian", flag: "🇳🇱", googleTranslate: true },
-  { code: "gl", label: "Galician", flag: "🏴", googleTranslate: true },
-  { code: "ka", label: "Georgian", flag: "🇬🇪", googleTranslate: true },
-  { code: "el", label: "Greek", flag: "🇬🇷", googleTranslate: true },
-  { code: "gu", label: "Gujarati", flag: "🇮🇳", googleTranslate: true },
-  { code: "ht", label: "Haitian Creole", flag: "🇭🇹", googleTranslate: true },
-  { code: "ha", label: "Hausa", flag: "🇳🇬", googleTranslate: true },
-  { code: "haw", label: "Hawaiian", flag: "🇺🇸", googleTranslate: true },
-  { code: "iw", label: "Hebrew", flag: "🇮🇱", googleTranslate: true },
-  { code: "hmn", label: "Hmong", flag: "🇱🇦", googleTranslate: true },
-  { code: "is", label: "Icelandic", flag: "🇮🇸", googleTranslate: true },
-  { code: "ig", label: "Igbo", flag: "🇳🇬", googleTranslate: true },
-  { code: "id", label: "Indonesian", flag: "🇮🇩", googleTranslate: true },
-  { code: "ga", label: "Irish", flag: "🇮🇪", googleTranslate: true },
-  { code: "jw", label: "Javanese", flag: "🇮🇩", googleTranslate: true },
-  { code: "kn", label: "Kannada", flag: "🇮🇳", googleTranslate: true },
-  { code: "kk", label: "Kazakh", flag: "🇰🇿", googleTranslate: true },
-  { code: "km", label: "Khmer", flag: "🇰🇭", googleTranslate: true },
-  { code: "ku", label: "Kurdish", flag: "🏴", googleTranslate: true },
-  { code: "ky", label: "Kyrgyz", flag: "🇰🇬", googleTranslate: true },
-  { code: "lo", label: "Lao", flag: "🇱🇦", googleTranslate: true },
-  { code: "la", label: "Latin", flag: "🏛️", googleTranslate: true },
-  { code: "lv", label: "Latvian", flag: "🇱🇻", googleTranslate: true },
-  { code: "lt", label: "Lithuanian", flag: "🇱🇹", googleTranslate: true },
-  { code: "lb", label: "Luxembourgish", flag: "🇱🇺", googleTranslate: true },
-  { code: "mk", label: "Macedonian", flag: "🇲🇰", googleTranslate: true },
-  { code: "mg", label: "Malagasy", flag: "🇲🇬", googleTranslate: true },
-  { code: "ms", label: "Malay", flag: "🇲🇾", googleTranslate: true },
-  { code: "ml", label: "Malayalam", flag: "🇮🇳", googleTranslate: true },
-  { code: "mt", label: "Maltese", flag: "🇲🇹", googleTranslate: true },
-  { code: "mi", label: "Maori", flag: "🇳🇿", googleTranslate: true },
-  { code: "mr", label: "Marathi", flag: "🇮🇳", googleTranslate: true },
-  { code: "mn", label: "Mongolian", flag: "🇲🇳", googleTranslate: true },
-  { code: "my", label: "Myanmar", flag: "🇲🇲", googleTranslate: true },
-  { code: "ne", label: "Nepali", flag: "🇳🇵", googleTranslate: true },
-  { code: "ps", label: "Pashto", flag: "🇦🇫", googleTranslate: true },
-  { code: "fa", label: "Persian", flag: "🇮🇷", googleTranslate: true },
-  { code: "pa", label: "Punjabi", flag: "🇮🇳", googleTranslate: true },
-  { code: "ro", label: "Romanian", flag: "🇷🇴", googleTranslate: true },
-  { code: "ru", label: "Russian", flag: "🇷🇺", googleTranslate: true },
-  { code: "sm", label: "Samoan", flag: "🇼🇸", googleTranslate: true },
-  { code: "gd", label: "Scots Gaelic", flag: "🏴󠁧󠁢󠁳󠁣󠁴󠁿", googleTranslate: true },
-  { code: "sr", label: "Serbian", flag: "🇷🇸", googleTranslate: true },
-  { code: "st", label: "Sesotho", flag: "🇱🇸", googleTranslate: true },
-  { code: "sn", label: "Shona", flag: "🇿🇼", googleTranslate: true },
-  { code: "sd", label: "Sindhi", flag: "🇵🇰", googleTranslate: true },
-  { code: "si", label: "Sinhala", flag: "🇱🇰", googleTranslate: true },
-  { code: "sk", label: "Slovak", flag: "🇸🇰", googleTranslate: true },
-  { code: "sl", label: "Slovenian", flag: "🇸🇮", googleTranslate: true },
-  { code: "so", label: "Somali", flag: "🇸🇴", googleTranslate: true },
-  { code: "su", label: "Sundanese", flag: "🇮🇩", googleTranslate: true },
-  { code: "sw", label: "Swahili", flag: "🇰🇪", googleTranslate: true },
-  { code: "sv", label: "Swedish", flag: "🇸🇪", googleTranslate: true },
-  { code: "tg", label: "Tajik", flag: "🇹🇯", googleTranslate: true },
-  { code: "ta", label: "Tamil", flag: "🇮🇳", googleTranslate: true },
-  { code: "te", label: "Telugu", flag: "🇮🇳", googleTranslate: true },
-  { code: "th", label: "Thai", flag: "🇹🇭", googleTranslate: true },
-  { code: "tr", label: "Turkish", flag: "🇹🇷", googleTranslate: true },
-  { code: "uk", label: "Ukrainian", flag: "🇺🇦", googleTranslate: true },
-  { code: "ur", label: "Urdu", flag: "🇵🇰", googleTranslate: true },
-  { code: "uz", label: "Uzbek", flag: "🇺🇿", googleTranslate: true },
-  { code: "vi", label: "Vietnamese", flag: "🇻🇳", googleTranslate: true },
-  { code: "cy", label: "Welsh", flag: "🏴󠁧󠁢󠁷󠁬󠁳󠁿", googleTranslate: true },
-  { code: "xh", label: "Xhosa", flag: "🇿🇦", googleTranslate: true },
-  { code: "yi", label: "Yiddish", flag: "🕍", googleTranslate: true },
-  { code: "yo", label: "Yoruba", flag: "🇳🇬", googleTranslate: true },
-  { code: "zu", label: "Zulu", flag: "🇿🇦", googleTranslate: true },
+const GOOGLE_TRANSLATE_LANGUAGES = [
+  { code: "af", label: "Afrikaans", flag: "🇿🇦" },
+  { code: "sq", label: "Albanian", flag: "🇦🇱" },
+  { code: "am", label: "Amharic", flag: "🇪🇹" },
+  { code: "hy", label: "Armenian", flag: "🇦🇲" },
+  { code: "az", label: "Azerbaijani", flag: "🇦🇿" },
+  { code: "eu", label: "Basque", flag: "🏴" },
+  { code: "be", label: "Belarusian", flag: "🇧🇾" },
+  { code: "bn", label: "Bengali", flag: "🇧🇩" },
+  { code: "bs", label: "Bosnian", flag: "🇧🇦" },
+  { code: "ca", label: "Catalan", flag: "🏴" },
+  { code: "ceb", label: "Cebuano", flag: "🇵🇭" },
+  { code: "ny", label: "Chichewa", flag: "🇲🇼" },
+  { code: "co", label: "Corsican", flag: "🇫🇷" },
+  { code: "eo", label: "Esperanto", flag: "🌍" },
+  { code: "et", label: "Estonian", flag: "🇪🇪" },
+  { code: "tl", label: "Filipino", flag: "🇵🇭" },
+  { code: "fy", label: "Frisian", flag: "🇳🇱" },
+  { code: "gl", label: "Galician", flag: "🏴" },
+  { code: "ka", label: "Georgian", flag: "🇬🇪" },
+  { code: "el", label: "Greek", flag: "🇬🇷" },
+  { code: "gu", label: "Gujarati", flag: "🇮🇳" },
+  { code: "ht", label: "Haitian Creole", flag: "🇭🇹" },
+  { code: "ha", label: "Hausa", flag: "🇳🇬" },
+  { code: "haw", label: "Hawaiian", flag: "🇺🇸" },
+  { code: "iw", label: "Hebrew", flag: "🇮🇱" },
+  { code: "hmn", label: "Hmong", flag: "🇱🇦" },
+  { code: "is", label: "Icelandic", flag: "🇮🇸" },
+  { code: "ig", label: "Igbo", flag: "🇳🇬" },
+  { code: "id", label: "Indonesian", flag: "🇮🇩" },
+  { code: "ga", label: "Irish", flag: "🇮🇪" },
+  { code: "jw", label: "Javanese", flag: "🇮🇩" },
+  { code: "kn", label: "Kannada", flag: "🇮🇳" },
+  { code: "kk", label: "Kazakh", flag: "🇰🇿" },
+  { code: "km", label: "Khmer", flag: "🇰🇭" },
+  { code: "ku", label: "Kurdish", flag: "🏴" },
+  { code: "ky", label: "Kyrgyz", flag: "🇰🇬" },
+  { code: "lo", label: "Lao", flag: "🇱🇦" },
+  { code: "la", label: "Latin", flag: "🏛️" },
+  { code: "lv", label: "Latvian", flag: "🇱🇻" },
+  { code: "lt", label: "Lithuanian", flag: "🇱🇹" },
+  { code: "lb", label: "Luxembourgish", flag: "🇱🇺" },
+  { code: "mk", label: "Macedonian", flag: "🇲🇰" },
+  { code: "mg", label: "Malagasy", flag: "🇲🇬" },
+  { code: "ms", label: "Malay", flag: "🇲🇾" },
+  { code: "ml", label: "Malayalam", flag: "🇮🇳" },
+  { code: "mt", label: "Maltese", flag: "🇲🇹" },
+  { code: "mi", label: "Maori", flag: "🇳🇿" },
+  { code: "mr", label: "Marathi", flag: "🇮🇳" },
+  { code: "mn", label: "Mongolian", flag: "🇲🇳" },
+  { code: "my", label: "Myanmar", flag: "🇲🇲" },
+  { code: "ne", label: "Nepali", flag: "🇳🇵" },
+  { code: "ps", label: "Pashto", flag: "🇦🇫" },
+  { code: "fa", label: "Persian", flag: "🇮🇷" },
+  { code: "pa", label: "Punjabi", flag: "🇮🇳" },
+  { code: "ro", label: "Romanian", flag: "🇷🇴" },
+  { code: "sm", label: "Samoan", flag: "🇼🇸" },
+  { code: "gd", label: "Scots Gaelic", flag: "🏴󠁧󠁢󠁳󠁣󠁴󠁿" },
+  { code: "sr", label: "Serbian", flag: "🇷🇸" },
+  { code: "st", label: "Sesotho", flag: "🇱🇸" },
+  { code: "sn", label: "Shona", flag: "🇿🇼" },
+  { code: "sd", label: "Sindhi", flag: "🇵🇰" },
+  { code: "si", label: "Sinhala", flag: "🇱🇰" },
+  { code: "sk", label: "Slovak", flag: "🇸🇰" },
+  { code: "sl", label: "Slovenian", flag: "🇸🇮" },
+  { code: "so", label: "Somali", flag: "🇸🇴" },
+  { code: "su", label: "Sundanese", flag: "🇮🇩" },
+  { code: "sw", label: "Swahili", flag: "🇰🇪" },
+  { code: "sv", label: "Swedish", flag: "🇸🇪" },
+  { code: "tg", label: "Tajik", flag: "🇹🇯" },
+  { code: "ta", label: "Tamil", flag: "🇮🇳" },
+  { code: "te", label: "Telugu", flag: "🇮🇳" },
+  { code: "th", label: "Thai", flag: "🇹🇭" },
+  { code: "uk", label: "Ukrainian", flag: "🇺🇦" },
+  { code: "ur", label: "Urdu", flag: "🇵🇰" },
+  { code: "uz", label: "Uzbek", flag: "🇺🇿" },
+  { code: "vi", label: "Vietnamese", flag: "🇻🇳" },
+  { code: "cy", label: "Welsh", flag: "🏴󠁧󠁢󠁷󠁬󠁳󠁿" },
+  { code: "xh", label: "Xhosa", flag: "🇿🇦" },
+  { code: "yi", label: "Yiddish", flag: "🕍" },
+  { code: "yo", label: "Yoruba", flag: "🇳🇬" },
+  { code: "zu", label: "Zulu", flag: "🇿🇦" },
 ];
+
+// Combine all languages
+const ALL_LANGUAGES = [
+  ...SUPPORTED_LANGUAGES.map(lang => ({ ...lang, isManual: true })),
+  ...GOOGLE_TRANSLATE_LANGUAGES.map(lang => ({ ...lang, isGoogleTranslate: true }))
+];
+
+declare global {
+  interface Window {
+    translatePage: (langCode: string) => boolean;
+    resetTranslation: () => boolean;
+  }
+}
 
 const LanguageSwitcher = ({ direction = "up" }: { direction?: "up" | "down" }) => {
   const { i18n } = useTranslation();
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [currentGoogleLang, setCurrentGoogleLang] = useState<string | null>(null);
+  const [googleTranslateReady, setGoogleTranslateReady] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const searchRef = useRef<HTMLInputElement>(null);
 
-  // Get current language - prioritize manual translations, then Google Translate
+  // Get current active language
   const getCurrentLang = () => {
-    // If we have a Google Translate language active, show that
     if (currentGoogleLang) {
-      return ALL_LANGUAGES.find((l) => l.code === currentGoogleLang && l.googleTranslate) || ALL_LANGUAGES[0];
+      return ALL_LANGUAGES.find(l => l.code === currentGoogleLang && l.isGoogleTranslate) || ALL_LANGUAGES[0];
     }
-    // Otherwise show the manual translation language
-    return ALL_LANGUAGES.find((l) => l.code === i18n.language && !l.googleTranslate) || ALL_LANGUAGES[0];
+    return ALL_LANGUAGES.find(l => l.code === i18n.language && l.isManual) || ALL_LANGUAGES[0];
   };
 
   const currentLang = getCurrentLang();
@@ -119,109 +124,99 @@ const LanguageSwitcher = ({ direction = "up" }: { direction?: "up" | "down" }) =
     ? ALL_LANGUAGES.filter((l) => l.label.toLowerCase().includes(search.toLowerCase()))
     : ALL_LANGUAGES;
 
-  // Function to trigger Google Translate
-  const triggerGoogleTranslate = (langCode: string) => {
-    try {
-      // Wait for Google Translate to be ready
-      const checkGoogleTranslate = () => {
-        const selectElement = document.querySelector('.goog-te-combo') as HTMLSelectElement;
-        if (selectElement) {
-          selectElement.value = langCode;
-          selectElement.dispatchEvent(new Event('change', { bubbles: true }));
-          setCurrentGoogleLang(langCode);
-          return true;
-        }
-        return false;
-      };
+  // Listen for Google Translate ready event
+  useEffect(() => {
+    const handleGoogleTranslateReady = () => {
+      setGoogleTranslateReady(true);
+      console.log('Google Translate is ready');
+    };
 
-      // Try immediately, then retry with delays
-      if (!checkGoogleTranslate()) {
-        setTimeout(() => {
-          if (!checkGoogleTranslate()) {
-            setTimeout(() => checkGoogleTranslate(), 1000);
-          }
-        }, 500);
-      }
-    } catch (error) {
-      console.error('Error triggering Google Translate:', error);
-    }
-  };
-
-  // Function to reset to original language
-  const resetToOriginal = () => {
-    try {
-      const selectElement = document.querySelector('.goog-te-combo') as HTMLSelectElement;
-      if (selectElement) {
-        selectElement.value = '';
-        selectElement.dispatchEvent(new Event('change', { bubbles: true }));
-        setCurrentGoogleLang(null);
-      }
-    } catch (error) {
-      console.error('Error resetting Google Translate:', error);
-    }
-  };
-
-  const handleChange = (code: string, isGoogleTranslate = false) => {
-    const lang = ALL_LANGUAGES.find((l) => l.code === code);
+    window.addEventListener('googleTranslateReady', handleGoogleTranslateReady);
     
-    if (isGoogleTranslate) {
-      // Reset manual translation to English first
-      if (i18n.language !== 'en') {
-        i18n.changeLanguage('en');
-      }
-      // Use Google Translate
-      triggerGoogleTranslate(code);
-    } else {
-      // Reset Google Translate first
-      resetToOriginal();
-      // Use manual translation
-      i18n.changeLanguage(code);
+    // Check if already ready
+    if (window.translatePage) {
+      setGoogleTranslateReady(true);
     }
-    
-    // Set text direction for RTL languages
-    document.documentElement.dir = (lang && "dir" in lang) ? "rtl" : "ltr";
-    setOpen(false);
-    setSearch("");
-  };
+
+    return () => {
+      window.removeEventListener('googleTranslateReady', handleGoogleTranslateReady);
+    };
+  }, []);
 
   // Monitor Google Translate changes
   useEffect(() => {
-    const observer = new MutationObserver(() => {
-      const selectElement = document.querySelector('.goog-te-combo') as HTMLSelectElement;
-      if (selectElement && selectElement.value) {
-        const selectedLang = selectElement.value;
-        if (selectedLang !== currentGoogleLang) {
-          setCurrentGoogleLang(selectedLang);
-        }
-      } else if (currentGoogleLang) {
-        setCurrentGoogleLang(null);
-      }
-    });
+    if (!googleTranslateReady) return;
 
-    // Start observing when Google Translate is available
-    const checkAndObserve = () => {
-      const selectElement = document.querySelector('.goog-te-combo');
+    const checkGoogleTranslateState = () => {
+      const selectElement = document.querySelector('.goog-te-combo') as HTMLSelectElement;
       if (selectElement) {
-        observer.observe(selectElement, { attributes: true, attributeFilter: ['value'] });
-        return true;
+        const currentValue = selectElement.value;
+        if (currentValue && currentValue !== currentGoogleLang) {
+          setCurrentGoogleLang(currentValue);
+        } else if (!currentValue && currentGoogleLang) {
+          setCurrentGoogleLang(null);
+        }
       }
-      return false;
     };
 
-    // Try to start observing with retries
-    if (!checkAndObserve()) {
-      const retryInterval = setInterval(() => {
-        if (checkAndObserve()) {
-          clearInterval(retryInterval);
-        }
-      }, 1000);
+    // Check immediately
+    checkGoogleTranslateState();
 
-      // Clean up retry after 10 seconds
-      setTimeout(() => clearInterval(retryInterval), 10000);
+    // Set up periodic checking
+    const interval = setInterval(checkGoogleTranslateState, 1000);
+
+    return () => clearInterval(interval);
+  }, [googleTranslateReady, currentGoogleLang]);
+
+  const handleManualLanguageChange = (code: string) => {
+    // Reset Google Translate first
+    if (currentGoogleLang && window.resetTranslation) {
+      window.resetTranslation();
+      setCurrentGoogleLang(null);
+    }
+    
+    // Change manual language
+    i18n.changeLanguage(code);
+    
+    // Set text direction
+    const lang = ALL_LANGUAGES.find(l => l.code === code);
+    document.documentElement.dir = (lang && "dir" in lang) ? "rtl" : "ltr";
+  };
+
+  const handleGoogleTranslateChange = (code: string) => {
+    if (!googleTranslateReady || !window.translatePage) {
+      console.warn('Google Translate not ready yet');
+      return;
     }
 
-    return () => observer.disconnect();
-  }, [currentGoogleLang]);
+    // Reset manual language to English first
+    if (i18n.language !== 'en') {
+      i18n.changeLanguage('en');
+    }
+
+    // Trigger Google Translate
+    const success = window.translatePage(code);
+    if (success) {
+      setCurrentGoogleLang(code);
+      
+      // Set text direction
+      const lang = ALL_LANGUAGES.find(l => l.code === code);
+      document.documentElement.dir = (lang && "dir" in lang) ? "rtl" : "ltr";
+    } else {
+      console.warn('Failed to trigger Google Translate for:', code);
+    }
+  };
+
+  const handleLanguageChange = (code: string, isGoogleTranslate: boolean) => {
+    if (isGoogleTranslate) {
+      handleGoogleTranslateChange(code);
+    } else {
+      handleManualLanguageChange(code);
+    }
+    
+    setOpen(false);
+    setSearch("");
+  };
 
   // Close on outside click
   useEffect(() => {
@@ -233,7 +228,6 @@ const LanguageSwitcher = ({ direction = "up" }: { direction?: "up" | "down" }) =
     };
     if (open) {
       document.addEventListener("mousedown", handler);
-      // Focus search when opened
       setTimeout(() => searchRef.current?.focus(), 50);
     }
     return () => document.removeEventListener("mousedown", handler);
@@ -271,12 +265,12 @@ const LanguageSwitcher = ({ direction = "up" }: { direction?: "up" | "down" }) =
             )}
             
             {/* Manual translations first */}
-            {filtered.filter(lang => !lang.googleTranslate).map((lang) => {
+            {filtered.filter(lang => lang.isManual).map((lang) => {
               const isActive = i18n.language === lang.code && !currentGoogleLang;
               return (
                 <button
-                  key={lang.code}
-                  onClick={() => handleChange(lang.code, false)}
+                  key={`manual-${lang.code}`}
+                  onClick={() => handleLanguageChange(lang.code, false)}
                   className={`flex items-center gap-2 w-full px-3 py-2 text-sm font-body transition-colors ${
                     isActive
                       ? "bg-accent-dim text-primary"
@@ -291,20 +285,24 @@ const LanguageSwitcher = ({ direction = "up" }: { direction?: "up" | "down" }) =
             })}
             
             {/* Separator if both types exist */}
-            {filtered.some(l => !l.googleTranslate) && filtered.some(l => l.googleTranslate) && (
+            {filtered.some(l => l.isManual) && filtered.some(l => l.isGoogleTranslate) && (
               <div className="border-t border-border my-1">
-                <p className="text-xs text-muted-foreground px-3 py-1 font-body">More Languages (Google Translate)</p>
+                <p className="text-xs text-muted-foreground px-3 py-1 font-body">
+                  More Languages (Google Translate)
+                  {!googleTranslateReady && <span className="ml-1 text-amber-400">⏳</span>}
+                </p>
               </div>
             )}
             
             {/* Google Translate languages */}
-            {filtered.filter(lang => lang.googleTranslate).map((lang) => {
+            {filtered.filter(lang => lang.isGoogleTranslate).map((lang) => {
               const isActive = currentGoogleLang === lang.code;
               return (
                 <button
-                  key={lang.code}
-                  onClick={() => handleChange(lang.code, true)}
-                  className={`flex items-center gap-2 w-full px-3 py-2 text-sm font-body transition-colors ${
+                  key={`gt-${lang.code}`}
+                  onClick={() => handleLanguageChange(lang.code, true)}
+                  disabled={!googleTranslateReady}
+                  className={`flex items-center gap-2 w-full px-3 py-2 text-sm font-body transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
                     isActive
                       ? "bg-accent-dim text-primary"
                       : "text-muted-foreground hover:text-foreground hover:bg-secondary"
