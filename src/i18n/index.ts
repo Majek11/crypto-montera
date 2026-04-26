@@ -18,6 +18,10 @@ import tr from "./locales/tr.json";
 import nl from "./locales/nl.json";
 import pl from "./locales/pl.json";
 import ur from "./locales/ur.json";
+import fa from "./locales/fa.json";
+import vi from "./locales/vi.json";
+import bn from "./locales/bn.json";
+import ta from "./locales/ta.json";
 
 export const SUPPORTED_LANGUAGES = [
   { code: "en", label: "English", flag: "🇺🇸" },
@@ -36,6 +40,10 @@ export const SUPPORTED_LANGUAGES = [
   { code: "nl", label: "Nederlands", flag: "🇳🇱" },
   { code: "pl", label: "Polski", flag: "🇵🇱" },
   { code: "ur", label: "اردو", flag: "🇵🇰", dir: "rtl" },
+  { code: "fa", label: "فارسی", flag: "🇮🇷", dir: "rtl" },
+  { code: "vi", label: "Tiếng Việt", flag: "🇻🇳" },
+  { code: "bn", label: "বাংলা", flag: "🇧🇩" },
+  { code: "ta", label: "தமிழ்", flag: "🇮🇳" },
 ] as const;
 
 const resources = {
@@ -55,6 +63,10 @@ const resources = {
   nl: { translation: nl },
   pl: { translation: pl },
   ur: { translation: ur },
+  fa: { translation: fa },
+  vi: { translation: vi },
+  bn: { translation: bn },
+  ta: { translation: ta },
 };
 
 i18n
