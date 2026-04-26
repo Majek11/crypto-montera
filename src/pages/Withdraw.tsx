@@ -10,7 +10,6 @@ import { toast } from "sonner";
 import AppLayout from "@/components/layout/AppLayout";
 import { useNavigate } from "react-router-dom";
 import { z } from "zod";
-import type { Wallet } from "@/types";
 import { CHAINS, CURRENCIES } from "@/lib/constants";
 
 const withdrawSchema = z.object({
@@ -21,12 +20,10 @@ const withdrawSchema = z.object({
 const Withdraw = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [wallets, setWallets] = useState<Wallet[]>([]);
   const [selectedChain, setSelectedChain] = useState(CHAINS[0]);
   const [selectedCurrency, setSelectedCurrency] = useState("USDT");
   const [amount, setAmount] = useState("");
   const [withdrawAddress, setWithdrawAddress] = useState("");
-  const [selectedWallet, setSelectedWallet] = useState<Wallet | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [step, setStep] = useState<"configure" | "confirm" | "submitted">("configure");
   const [availableBalance, setAvailableBalance] = useState(0);
@@ -37,18 +34,21 @@ const Withdraw = () => {
     if (!user) return;
     const fetchData = async () => {
       const [
-        { data: walletData, error },
+        { data: profileData },
         { data: kycData },
       ] = await Promise.all([
-        supabase.from("wallets").select("*").eq("user_id", user.id).order("is_primary", { ascending: false }),
+        supabase.from("profiles").select("balance, profit").eq("user_id", user.id).single(),
         supabase.from("kyc_verifications").select("status").eq("user_id", user.id).order("created_at", { ascending: false }).limit(1).maybeSingle(),
       ]);
-      if (error) { toast.error("Failed to load wallets"); }
-      if (walletData && walletData.length > 0) {
-        setWallets(walletData);
-        setSelectedWallet(walletData[0]);
-        setAvailableBalance(walletData.reduce((acc, w) => acc + Number(w.balance || 0), 0));
+      
+      if (profileData) {
+        // Calculate total available balance (balance + profit)
+        const totalBalance = Number(profileData.balance || 0) + Number(profileData.profit || 0);
+        setAvailableBalance(totalBalance);
+      } else {
+        setAvailableBalance(0);
       }
+      
       setKycStatus((kycData as any)?.status || "pending");
       setKycLoading(false);
     };
@@ -72,24 +72,37 @@ const Withdraw = () => {
     if (!user) return;
     setSubmitting(true);
 
-    const reference = `WTH-${Date.now()}-${Math.random().toString(36).slice(2, 7).toUpperCase()}`;
+    try {
+      // Use the process_withdrawal function to properly deduct balance
+      const { data, error } = await supabase.rpc('process_withdrawal', {
+        p_user_id: user.id,
+        p_amount: Number(amount),
+        p_source: 'balance_first' // Deduct from balance first, then profit
+      });
 
-    const { error } = await supabase.from("transactions").insert({
-      user_id: user.id,
-      type: "withdrawal" as const,
-      amount: Number(amount),
-      currency: selectedCurrency,
-      status: "pending" as const,
-      wallet_id: selectedWallet?.id || null,
-      reference,
-      description: `${selectedCurrency} withdrawal to ${withdrawAddress.slice(0, 8)}...${withdrawAddress.slice(-6)} via ${selectedChain.name}`,
-    });
+      if (error) {
+        console.error("Withdrawal processing error:", error);
+        toast.error("Failed to process withdrawal: " + error.message);
+        setSubmitting(false);
+        return;
+      }
 
-    if (error) {
-      toast.error(error.message);
-      setSubmitting(false);
-    } else {
+      if (data?.error) {
+        toast.error(data.error);
+        setSubmitting(false);
+        return;
+      }
+
+      // Success - withdrawal was processed and balance deducted
+      console.log("Withdrawal processed successfully:", data);
+      toast.success(`Withdrawal of $${Number(amount).toLocaleString()} processed successfully`);
+      
       setStep("submitted");
+      setSubmitting(false);
+      
+    } catch (error) {
+      console.error("Withdrawal submission error:", error);
+      toast.error("Failed to submit withdrawal");
       setSubmitting(false);
     }
   };
@@ -279,19 +292,19 @@ const Withdraw = () => {
             </div>
             <h2 className="font-heading font-bold text-xl text-foreground mb-2">Withdrawal Submitted</h2>
             <p className="font-body text-sm text-muted-foreground mb-6">
-              Your withdrawal of <span className="text-primary font-medium">{receiveAmount.toFixed(4)} {selectedCurrency}</span> is pending approval. Large withdrawals may require manual review.
+              Your withdrawal of <span className="text-primary font-medium">{receiveAmount.toFixed(4)} {selectedCurrency}</span> has been processed successfully. The funds have been deducted from your account.
             </p>
 
             {/* Status Tracker */}
             <div className="flex items-center justify-center gap-2 mb-6">
-              {["Submitted", "Under Review", "Processing", "Sent"].map((s, i) => (
+              {["Submitted", "Processed", "Completed"].map((s, i) => (
                 <div key={s} className="flex items-center gap-2">
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center font-mono text-xs font-bold ${i === 0 ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground"
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center font-mono text-xs font-bold ${i <= 1 ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground"
                     }`}>
-                    {i + 1}
+                    {i < 2 ? <Check size={14} /> : i + 1}
                   </div>
-                  <span className={`font-body text-[10px] sm:text-xs ${i === 0 ? "text-primary" : "text-muted-foreground"}`}>{s}</span>
-                  {i < 3 && <div className="w-4 sm:w-8 h-px bg-border" />}
+                  <span className={`font-body text-[10px] sm:text-xs ${i <= 1 ? "text-primary" : "text-muted-foreground"}`}>{s}</span>
+                  {i < 2 && <div className="w-4 sm:w-8 h-px bg-border" />}
                 </div>
               ))}
             </div>
