@@ -73,29 +73,31 @@ const Withdraw = () => {
     setSubmitting(true);
 
     try {
-      // Use the process_withdrawal function to properly deduct balance
-      const { data, error } = await supabase.rpc('process_withdrawal', {
-        p_user_id: user.id,
-        p_amount: Number(amount),
-        p_source: 'balance_first' // Deduct from balance first, then profit
+      const reference = `WTH-${Date.now()}-${Math.random().toString(36).slice(2, 7).toUpperCase()}`;
+
+      // Create pending withdrawal transaction for admin review
+      const { error } = await supabase.from("transactions").insert({
+        user_id: user.id,
+        type: "withdrawal" as const,
+        amount: Number(amount),
+        currency: selectedCurrency,
+        status: "pending" as const,
+        reference,
+        description: `${selectedCurrency} withdrawal to ${withdrawAddress.slice(0, 8)}...${withdrawAddress.slice(-6)} via ${selectedChain.name}`,
+        // Store withdrawal details in metadata or description
+        tx_hash: withdrawAddress, // Temporarily store address in tx_hash field
       });
 
       if (error) {
-        console.error("Withdrawal processing error:", error);
-        toast.error("Failed to process withdrawal: " + error.message);
+        console.error("Withdrawal submission error:", error);
+        toast.error("Failed to submit withdrawal: " + error.message);
         setSubmitting(false);
         return;
       }
 
-      if (data?.error) {
-        toast.error(data.error);
-        setSubmitting(false);
-        return;
-      }
-
-      // Success - withdrawal was processed and balance deducted
-      console.log("Withdrawal processed successfully:", data);
-      toast.success(`Withdrawal of $${Number(amount).toLocaleString()} processed successfully`);
+      // Success - withdrawal submitted for admin review
+      console.log("Withdrawal submitted for review");
+      toast.success(`Withdrawal of $${Number(amount).toLocaleString()} submitted for admin review`);
       
       setStep("submitted");
       setSubmitting(false);
@@ -292,19 +294,19 @@ const Withdraw = () => {
             </div>
             <h2 className="font-heading font-bold text-xl text-foreground mb-2">Withdrawal Submitted</h2>
             <p className="font-body text-sm text-muted-foreground mb-6">
-              Your withdrawal of <span className="text-primary font-medium">{receiveAmount.toFixed(4)} {selectedCurrency}</span> has been processed successfully. The funds have been deducted from your account.
+              Your withdrawal of <span className="text-primary font-medium">{receiveAmount.toFixed(4)} {selectedCurrency}</span> has been submitted for admin review. You will be notified once it's processed.
             </p>
 
             {/* Status Tracker */}
             <div className="flex items-center justify-center gap-2 mb-6">
-              {["Submitted", "Processed", "Completed"].map((s, i) => (
+              {["Submitted", "Under Review", "Processing", "Completed"].map((s, i) => (
                 <div key={s} className="flex items-center gap-2">
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center font-mono text-xs font-bold ${i <= 1 ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground"
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center font-mono text-xs font-bold ${i === 0 ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground"
                     }`}>
-                    {i < 2 ? <Check size={14} /> : i + 1}
+                    {i === 0 ? <Check size={14} /> : i + 1}
                   </div>
-                  <span className={`font-body text-[10px] sm:text-xs ${i <= 1 ? "text-primary" : "text-muted-foreground"}`}>{s}</span>
-                  {i < 2 && <div className="w-4 sm:w-8 h-px bg-border" />}
+                  <span className={`font-body text-[10px] sm:text-xs ${i === 0 ? "text-primary" : "text-muted-foreground"}`}>{s}</span>
+                  {i < 3 && <div className="w-4 sm:w-8 h-px bg-border" />}
                 </div>
               ))}
             </div>
