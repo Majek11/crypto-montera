@@ -17,6 +17,7 @@ import it from "./locales/it.json";
 import tr from "./locales/tr.json";
 import nl from "./locales/nl.json";
 import pl from "./locales/pl.json";
+import ur from "./locales/ur.json";
 
 export const SUPPORTED_LANGUAGES = [
   { code: "en", label: "English", flag: "🇺🇸" },
@@ -34,6 +35,7 @@ export const SUPPORTED_LANGUAGES = [
   { code: "tr", label: "Türkçe", flag: "🇹🇷" },
   { code: "nl", label: "Nederlands", flag: "🇳🇱" },
   { code: "pl", label: "Polski", flag: "🇵🇱" },
+  { code: "ur", label: "اردو", flag: "🇵🇰", dir: "rtl" },
 ] as const;
 
 const resources = {
@@ -52,6 +54,7 @@ const resources = {
   tr: { translation: tr },
   nl: { translation: nl },
   pl: { translation: pl },
+  ur: { translation: ur },
 };
 
 i18n
