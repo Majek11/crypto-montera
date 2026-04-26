@@ -65,59 +65,66 @@
     function googleTranslateElementInit() {
       new google.translate.TranslateElement({
         pageLanguage: 'en',
-        includedLanguages: 'en,es,fr,de,pt,ar,zh,ja,ko,ru,hi,it,tr,nl,pl,sv,da,no,fi,cs,sk,hu,ro,bg,hr,sl,et,lv,lt,mt,ga,cy,eu,ca,gl,ast,oc,co,br,gd,kw,gv,jv,su,tl,ceb,haw,mg,sm,ny,sn,st,xh,zu,af,sq,am,hy,az,be,bn,bs,my,km,ka,gu,ht,ha,hm,is,ig,id,yi,kn,kk,ky,lo,la,lv,mk,ml,mn,mr,ne,or,ps,fa,pa,qu,ro,sm,sr,si,so,sw,ta,te,th,ti,uk,ur,uz,vi,cy,fy,yo,zu',
+        includedLanguages: 'af,sq,am,ar,hy,az,eu,be,bn,bs,bg,ca,ceb,ny,zh,co,hr,cs,da,nl,en,eo,et,tl,fi,fr,fy,gl,ka,de,el,gu,ht,ha,haw,iw,hi,hmn,hu,is,ig,id,ga,it,ja,jw,kn,kk,km,ko,ku,ky,lo,la,lv,lt,lb,mk,mg,ms,ml,mt,mi,mr,mn,my,ne,no,ps,fa,pl,pt,pa,ro,ru,sm,gd,sr,st,sn,sd,si,sk,sl,so,es,su,sw,sv,tg,ta,te,th,tr,uk,ur,uz,vi,cy,xh,yi,yo,zu',
         layout: google.translate.TranslateElement.InlineLayout.SIMPLE,
         autoDisplay: false,
         multilanguagePage: true
       }, 'google_translate_element');
+      
+      // Make Google Translate globally accessible
+      window.googleTranslateElement = document.getElementById('google_translate_element');
     }
   </script>
   <script type="text/javascript" src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
   
   <!-- Custom Google Translate Styling -->
   <style>
-    /* Hide Google Translate banner */
-    .goog-te-banner-frame.skiptranslate { display: none !important; }
-    body { top: 0px !important; }
-    
-    /* Style the translate widget */
-    .goog-te-gadget { 
-      font-family: inherit !important;
-      font-size: 0 !important;
+    /* Hide Google Translate banner and toolbar */
+    .goog-te-banner-frame.skiptranslate { 
+      display: none !important; 
     }
-    .goog-te-gadget .goog-te-combo {
-      background: hsl(var(--card)) !important;
-      border: 1px solid hsl(var(--border)) !important;
-      border-radius: 6px !important;
-      color: hsl(var(--foreground)) !important;
-      font-size: 12px !important;
-      padding: 4px 8px !important;
-      margin: 0 !important;
+    body { 
+      top: 0px !important; 
     }
-    .goog-te-gadget .goog-te-combo:hover {
-      border-color: hsl(var(--primary)) !important;
+    .goog-te-ftab {
+      display: none !important;
     }
     
-    /* Hide "Powered by Google" text */
-    .goog-te-gadget > span > a { display: none !important; }
-    .goog-te-gadget > span { font-size: 0 !important; }
-    
-    /* Custom translate button styling */
-    .translate-widget {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      padding: 6px 12px;
-      background: hsl(var(--card));
-      border: 1px solid hsl(var(--border));
-      border-radius: 8px;
-      font-size: 12px;
-      color: hsl(var(--muted-foreground));
-      transition: all 0.2s;
+    /* Hide the default Google Translate widget completely */
+    #google_translate_element {
+      display: none !important;
     }
-    .translate-widget:hover {
-      border-color: hsl(var(--primary));
-      color: hsl(var(--foreground));
+    .goog-te-gadget {
+      display: none !important;
+    }
+    
+    /* Hide any visible Google Translate elements */
+    .goog-te-combo {
+      display: none !important;
+    }
+    
+    /* Ensure the page doesn't get shifted */
+    body.goog-te-hl {
+      top: 0 !important;
+    }
+    
+    /* Hide Google Translate attribution */
+    .goog-te-gadget > span > a { 
+      display: none !important; 
+    }
+    .goog-te-gadget > span { 
+      display: none !important; 
+    }
+    
+    /* Style translated content to maintain design */
+    .goog-te-highlight {
+      background: transparent !important;
+      box-shadow: none !important;
+    }
+    
+    /* Prevent layout shifts during translation */
+    .goog-te-spinner-pos {
+      display: none !important;
     }
   </style>
 </head>

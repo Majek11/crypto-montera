@@ -18,17 +18,14 @@ const ALL_LANGUAGES = [
   { code: "be", label: "Belarusian", flag: "🇧🇾", googleTranslate: true },
   { code: "bn", label: "Bengali", flag: "🇧🇩", googleTranslate: true },
   { code: "bs", label: "Bosnian", flag: "🇧🇦", googleTranslate: true },
-  { code: "bg", label: "Bulgarian", flag: "🇧🇬", googleTranslate: true },
   { code: "ca", label: "Catalan", flag: "🏴", googleTranslate: true },
   { code: "ceb", label: "Cebuano", flag: "🇵🇭", googleTranslate: true },
   { code: "ny", label: "Chichewa", flag: "🇲🇼", googleTranslate: true },
+  { code: "zh", label: "Chinese", flag: "🇨🇳", googleTranslate: true },
   { code: "co", label: "Corsican", flag: "🇫🇷", googleTranslate: true },
-  { code: "hr", label: "Croatian", flag: "🇭🇷", googleTranslate: true },
-  { code: "cs", label: "Czech", flag: "🇨🇿", googleTranslate: true },
-  { code: "da", label: "Danish", flag: "🇩🇰", googleTranslate: true },
+  { code: "eo", label: "Esperanto", flag: "🌍", googleTranslate: true },
   { code: "et", label: "Estonian", flag: "🇪🇪", googleTranslate: true },
   { code: "tl", label: "Filipino", flag: "🇵🇭", googleTranslate: true },
-  { code: "fi", label: "Finnish", flag: "🇫🇮", googleTranslate: true },
   { code: "fy", label: "Frisian", flag: "🇳🇱", googleTranslate: true },
   { code: "gl", label: "Galician", flag: "🏴", googleTranslate: true },
   { code: "ka", label: "Georgian", flag: "🇬🇪", googleTranslate: true },
@@ -39,7 +36,6 @@ const ALL_LANGUAGES = [
   { code: "haw", label: "Hawaiian", flag: "🇺🇸", googleTranslate: true },
   { code: "iw", label: "Hebrew", flag: "🇮🇱", googleTranslate: true },
   { code: "hmn", label: "Hmong", flag: "🇱🇦", googleTranslate: true },
-  { code: "hu", label: "Hungarian", flag: "🇭🇺", googleTranslate: true },
   { code: "is", label: "Icelandic", flag: "🇮🇸", googleTranslate: true },
   { code: "ig", label: "Igbo", flag: "🇳🇬", googleTranslate: true },
   { code: "id", label: "Indonesian", flag: "🇮🇩", googleTranslate: true },
@@ -48,6 +44,7 @@ const ALL_LANGUAGES = [
   { code: "kn", label: "Kannada", flag: "🇮🇳", googleTranslate: true },
   { code: "kk", label: "Kazakh", flag: "🇰🇿", googleTranslate: true },
   { code: "km", label: "Khmer", flag: "🇰🇭", googleTranslate: true },
+  { code: "ku", label: "Kurdish", flag: "🏴", googleTranslate: true },
   { code: "ky", label: "Kyrgyz", flag: "🇰🇬", googleTranslate: true },
   { code: "lo", label: "Lao", flag: "🇱🇦", googleTranslate: true },
   { code: "la", label: "Latin", flag: "🏛️", googleTranslate: true },
@@ -64,11 +61,11 @@ const ALL_LANGUAGES = [
   { code: "mn", label: "Mongolian", flag: "🇲🇳", googleTranslate: true },
   { code: "my", label: "Myanmar", flag: "🇲🇲", googleTranslate: true },
   { code: "ne", label: "Nepali", flag: "🇳🇵", googleTranslate: true },
-  { code: "no", label: "Norwegian", flag: "🇳🇴", googleTranslate: true },
   { code: "ps", label: "Pashto", flag: "🇦🇫", googleTranslate: true },
   { code: "fa", label: "Persian", flag: "🇮🇷", googleTranslate: true },
   { code: "pa", label: "Punjabi", flag: "🇮🇳", googleTranslate: true },
   { code: "ro", label: "Romanian", flag: "🇷🇴", googleTranslate: true },
+  { code: "ru", label: "Russian", flag: "🇷🇺", googleTranslate: true },
   { code: "sm", label: "Samoan", flag: "🇼🇸", googleTranslate: true },
   { code: "gd", label: "Scots Gaelic", flag: "🏴󠁧󠁢󠁳󠁣󠁴󠁿", googleTranslate: true },
   { code: "sr", label: "Serbian", flag: "🇷🇸", googleTranslate: true },
@@ -86,6 +83,7 @@ const ALL_LANGUAGES = [
   { code: "ta", label: "Tamil", flag: "🇮🇳", googleTranslate: true },
   { code: "te", label: "Telugu", flag: "🇮🇳", googleTranslate: true },
   { code: "th", label: "Thai", flag: "🇹🇭", googleTranslate: true },
+  { code: "tr", label: "Turkish", flag: "🇹🇷", googleTranslate: true },
   { code: "uk", label: "Ukrainian", flag: "🇺🇦", googleTranslate: true },
   { code: "ur", label: "Urdu", flag: "🇵🇰", googleTranslate: true },
   { code: "uz", label: "Uzbek", flag: "🇺🇿", googleTranslate: true },
@@ -101,34 +99,129 @@ const LanguageSwitcher = ({ direction = "up" }: { direction?: "up" | "down" }) =
   const { i18n } = useTranslation();
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
+  const [currentGoogleLang, setCurrentGoogleLang] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const searchRef = useRef<HTMLInputElement>(null);
 
-  const currentLang = ALL_LANGUAGES.find((l) => l.code === i18n.language) ?? ALL_LANGUAGES[0];
+  // Get current language - prioritize manual translations, then Google Translate
+  const getCurrentLang = () => {
+    // If we have a Google Translate language active, show that
+    if (currentGoogleLang) {
+      return ALL_LANGUAGES.find((l) => l.code === currentGoogleLang && l.googleTranslate) || ALL_LANGUAGES[0];
+    }
+    // Otherwise show the manual translation language
+    return ALL_LANGUAGES.find((l) => l.code === i18n.language && !l.googleTranslate) || ALL_LANGUAGES[0];
+  };
+
+  const currentLang = getCurrentLang();
 
   const filtered = search
     ? ALL_LANGUAGES.filter((l) => l.label.toLowerCase().includes(search.toLowerCase()))
     : ALL_LANGUAGES;
 
+  // Function to trigger Google Translate
+  const triggerGoogleTranslate = (langCode: string) => {
+    try {
+      // Wait for Google Translate to be ready
+      const checkGoogleTranslate = () => {
+        const selectElement = document.querySelector('.goog-te-combo') as HTMLSelectElement;
+        if (selectElement) {
+          selectElement.value = langCode;
+          selectElement.dispatchEvent(new Event('change', { bubbles: true }));
+          setCurrentGoogleLang(langCode);
+          return true;
+        }
+        return false;
+      };
+
+      // Try immediately, then retry with delays
+      if (!checkGoogleTranslate()) {
+        setTimeout(() => {
+          if (!checkGoogleTranslate()) {
+            setTimeout(() => checkGoogleTranslate(), 1000);
+          }
+        }, 500);
+      }
+    } catch (error) {
+      console.error('Error triggering Google Translate:', error);
+    }
+  };
+
+  // Function to reset to original language
+  const resetToOriginal = () => {
+    try {
+      const selectElement = document.querySelector('.goog-te-combo') as HTMLSelectElement;
+      if (selectElement) {
+        selectElement.value = '';
+        selectElement.dispatchEvent(new Event('change', { bubbles: true }));
+        setCurrentGoogleLang(null);
+      }
+    } catch (error) {
+      console.error('Error resetting Google Translate:', error);
+    }
+  };
+
   const handleChange = (code: string, isGoogleTranslate = false) => {
     const lang = ALL_LANGUAGES.find((l) => l.code === code);
     
     if (isGoogleTranslate) {
-      // Use Google Translate
-      const googleTranslateCombo = document.querySelector('.goog-te-combo') as HTMLSelectElement;
-      if (googleTranslateCombo) {
-        googleTranslateCombo.value = code;
-        googleTranslateCombo.dispatchEvent(new Event('change'));
+      // Reset manual translation to English first
+      if (i18n.language !== 'en') {
+        i18n.changeLanguage('en');
       }
+      // Use Google Translate
+      triggerGoogleTranslate(code);
     } else {
+      // Reset Google Translate first
+      resetToOriginal();
       // Use manual translation
       i18n.changeLanguage(code);
     }
     
-    document.documentElement.dir = lang && "dir" in lang ? "rtl" : "ltr";
+    // Set text direction for RTL languages
+    document.documentElement.dir = (lang && "dir" in lang) ? "rtl" : "ltr";
     setOpen(false);
     setSearch("");
   };
+
+  // Monitor Google Translate changes
+  useEffect(() => {
+    const observer = new MutationObserver(() => {
+      const selectElement = document.querySelector('.goog-te-combo') as HTMLSelectElement;
+      if (selectElement && selectElement.value) {
+        const selectedLang = selectElement.value;
+        if (selectedLang !== currentGoogleLang) {
+          setCurrentGoogleLang(selectedLang);
+        }
+      } else if (currentGoogleLang) {
+        setCurrentGoogleLang(null);
+      }
+    });
+
+    // Start observing when Google Translate is available
+    const checkAndObserve = () => {
+      const selectElement = document.querySelector('.goog-te-combo');
+      if (selectElement) {
+        observer.observe(selectElement, { attributes: true, attributeFilter: ['value'] });
+        return true;
+      }
+      return false;
+    };
+
+    // Try to start observing with retries
+    if (!checkAndObserve()) {
+      const retryInterval = setInterval(() => {
+        if (checkAndObserve()) {
+          clearInterval(retryInterval);
+        }
+      }, 1000);
+
+      // Clean up retry after 10 seconds
+      setTimeout(() => clearInterval(retryInterval), 10000);
+    }
+
+    return () => observer.disconnect();
+  }, [currentGoogleLang]);
 
   // Close on outside click
   useEffect(() => {
@@ -179,7 +272,7 @@ const LanguageSwitcher = ({ direction = "up" }: { direction?: "up" | "down" }) =
             
             {/* Manual translations first */}
             {filtered.filter(lang => !lang.googleTranslate).map((lang) => {
-              const isActive = i18n.language === lang.code;
+              const isActive = i18n.language === lang.code && !currentGoogleLang;
               return (
                 <button
                   key={lang.code}
@@ -205,17 +298,25 @@ const LanguageSwitcher = ({ direction = "up" }: { direction?: "up" | "down" }) =
             )}
             
             {/* Google Translate languages */}
-            {filtered.filter(lang => lang.googleTranslate).map((lang) => (
-              <button
-                key={lang.code}
-                onClick={() => handleChange(lang.code, true)}
-                className="flex items-center gap-2 w-full px-3 py-2 text-sm font-body text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
-              >
-                <span>{lang.flag}</span>
-                <span className="flex-1 text-left">{lang.label}</span>
-                <span className="text-xs text-muted-foreground">GT</span>
-              </button>
-            ))}
+            {filtered.filter(lang => lang.googleTranslate).map((lang) => {
+              const isActive = currentGoogleLang === lang.code;
+              return (
+                <button
+                  key={lang.code}
+                  onClick={() => handleChange(lang.code, true)}
+                  className={`flex items-center gap-2 w-full px-3 py-2 text-sm font-body transition-colors ${
+                    isActive
+                      ? "bg-accent-dim text-primary"
+                      : "text-muted-foreground hover:text-foreground hover:bg-secondary"
+                  }`}
+                >
+                  <span>{lang.flag}</span>
+                  <span className="flex-1 text-left">{lang.label}</span>
+                  <span className="text-xs text-muted-foreground">GT</span>
+                  {isActive && <Check size={14} className="text-primary" />}
+                </button>
+              );
+            })}
           </div>
         </div>
       )}
